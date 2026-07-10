@@ -1,127 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal LIVE - Production</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathsPal BATCH</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .tick { stroke: #fbbf24; stroke-width: 6; fill: none; stroke-linecap: round; opacity: 0.8; }
-        .circle { stroke: #ef4444; stroke-width: 5; fill: none; opacity: 0.7; }
-        .handwriting { font-family: 'Courier New', monospace; font-weight: bold; color: #334155; }
+        .tick { stroke: #fbbf24; stroke-width: 6; fill: none; stroke-linecap: round; }
+        .circle { stroke: #ef4444; stroke-width: 4; fill: none; }
+        .handwriting { font-family: 'Courier New', monospace; font-weight: bold; }
         .loader { border: 6px solid #f3f3f3; border-top: 6px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
-
     <script>
-        // --- LIVE CONFIGURATION ---
         const ASSIGNMENT_ID = '14ddbc09-0c61-480a-a203-f88d9109d3f7'; 
         const RENDER_URL = 'https://mathspal-backend.onrender.com/grade';
-
-        let view = 'landing';
-        let aiResult = null;
-        let aiSawText = "";
-
-        function show(screen) { view = screen; render(); }
-
-        async function runLiveGrading() {
-            const fileInput = document.getElementById('fileIn');
-            if (!fileInput.files[0]) return alert("Take a photo of your math first!");
-
-            show('loading');
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('student_name', 'Live Test');
-            formData.append('assignment_id', ASSIGNMENT_ID);
-
+        let view = 'landing', results = [], finalScore = "", aiSaw = "";
+        function show(v) { view = v; render(); }
+        async function runBatchGrading() {
+            const files = document.getElementById('fileIn').files;
+            if (files.length === 0) return alert("Select photos!");
+            view = 'loading'; render();
+            const fd = new FormData();
+            for (let i = 0; i < files.length; i++) fd.append('files', files[i]);
+            fd.append('student_name', 'Friday Night Tester');
+            fd.append('assignment_id', ASSIGNMENT_ID);
             try {
-                const response = await fetch(RENDER_URL, { method: 'POST', body: formData });
-                const data = await response.json();
-                
+                const res = await fetch(RENDER_URL, { method: 'POST', body: fd });
+                const data = await res.json();
                 if (data.status === "success") {
-                    aiResult = data.result; // 'correct' or 'incorrect'
-                    aiSawText = data.ai_read;
-                    show('preview');
-                } else {
-                    alert("AI Server Error: " + data.error);
-                    show('landing');
-                }
-            } catch (err) {
-                alert("Connection failed. Wait 30 seconds for the server to wake up and try again!");
-                show('landing');
-            }
+                    results = data.results; finalScore = data.score; aiSaw = data.saw;
+                    view = 'preview'; render();
+                } else { alert("Error: " + data.error); view = 'landing'; render(); }
+            } catch (e) { alert("Timeout. Crop photos smaller!"); view = 'landing'; render(); }
         }
-
         function render() {
             const root = document.getElementById('root');
-            
-            // 1. HOME SCREEN
             if (view === 'landing') {
-                root.innerHTML = `
-                    <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-8">
-                        <h1 class="text-5xl font-black italic tracking-tighter">Maths<span class="text-yellow-500 underline decoration-wavy decoration-slate-900">Pal</span></h1>
-                        <div class="bg-white p-10 rounded-3xl shadow-xl w-full max-w-xs space-y-6 text-center border border-slate-100">
-                            <div onclick="document.getElementById('fileIn').click()" class="border-4 border-dashed border-slate-100 p-8 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
-                                <p id="status" class="font-bold text-slate-400 text-xs uppercase tracking-widest leading-relaxed">
-                                    📸 TAP TO CAPTURE<br>
-                                    <span class="text-[10px] text-yellow-500">CROP IT SMALL!</span>
-                                </p>
-                                <input type="file" id="fileIn" class="hidden" accept="image/*" onchange="document.getElementById('status').innerText='✅ PHOTO READY'" />
-                            </div>
-                            <button onclick="runLiveGrading()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition">GRADE NOW</button>
-                        </div>
-                    </div>`;
-            } 
-            
-            // 2. LOADING SCREEN
-            else if (view === 'loading') {
-                root.innerHTML = `
-                    <div class="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-6">
-                        <div class="loader"></div>
-                        <div>
-                            <h2 class="text-2xl font-bold italic">MathsPal AI is reading...</h2>
-                            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Checking Supabase for Assignment Key</p>
-                        </div>
-                    </div>`;
-            } 
-            
-            // 3. RESULT PREVIEW
-            else if (view === 'preview') {
-                root.innerHTML = `
-                    <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg">
-                        <button onclick="show('landing')" class="text-yellow-400 font-bold">← BACK</button>
-                        <p class="font-bold text-xs uppercase tracking-widest">Grading Result</p>
-                        <div class="w-8"></div>
-                    </div>
-                    <div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen space-y-6 text-center">
-                        <div class="bg-white shadow-2xl rounded-sm w-full max-w-[320px] p-10 h-fit space-y-12 relative overflow-hidden">
-                            <div class="flex items-center space-x-4">
-                                <span class="text-[10px] font-black text-slate-200 uppercase tracking-widest leading-none">BOX 1</span>
-                                <div class="relative w-28 h-16 border-2 border-slate-100 rounded-lg flex items-center justify-center text-2xl handwriting">
-                                    <span class="opacity-10 text-[8px] uppercase">Paper</span>
-                                    <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full">
-                                        ${aiResult === 'correct' ? 
-                                            '<path d="M 20 50 L 45 75 L 80 25" class="tick" />' : 
-                                            '<circle cx="50" cy="50" r="40" class="circle" />'}
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="text-center pt-4">
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">AI detected: "${aiSawText}"</p>
-                                <div class="mt-2 border-4 border-red-500 text-red-500 font-black px-4 py-1 text-2xl -rotate-12 rounded-xl opacity-60 inline-block uppercase italic tracking-tighter">
-                                    ${aiResult === 'correct' ? '1/1' : '0/1'}
-                                </div>
-                            </div>
-                        </div>
-                        <button onclick="show('landing')" class="w-full max-w-[340px] py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black shadow-xl uppercase tracking-widest">GRADE ANOTHER</button>
-                    </div>`;
+                root.innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-8"><h1 class="text-5xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1><div class="bg-white p-10 rounded-3xl shadow-xl w-full max-w-xs space-y-6"><div onclick="document.getElementById('fileIn').click()" class="border-4 border-dashed border-slate-100 p-8 rounded-2xl cursor-pointer"><p id="status" class="font-bold text-slate-400 text-xs uppercase">📸 TAP TO SELECT ALL PAGES</p><input type="file" id="fileIn" class="hidden" multiple accept="image/*" onchange="document.getElementById('status').innerText=this.files.length + ' PAGES READY'" /></div><button onclick="runBatchGrading()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg uppercase tracking-widest">Grade Batch</button></div></div>`;
+            } else if (view === 'loading') {
+                root.innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4"><div class="loader"></div><h2 class="text-xl font-bold italic">Scanning Multiple Pages...</h2><p class="text-slate-400 text-xs font-bold uppercase">This takes ~15 seconds</p></div>`;
+            } else if (view === 'preview') {
+                root.innerHTML = `<div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs uppercase"><button onclick="view='landing';render()">← BACK</button><span>Results</span><span class="bg-green-600 px-3 py-1 rounded">${finalScore}</span></div><div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen space-y-4">${results.map(r => `<div class="bg-white rounded-xl w-full max-w-[340px] p-6 flex justify-between items-center shadow-xl"><span class="font-black text-slate-300 uppercase text-xs">Question ${r.q}</span><div class="relative w-16 h-10 border-2 border-slate-100 rounded flex items-center justify-center"><svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full">${r.status === 'correct' ? '<path d="M 20 50 L 45 75 L 80 25" class="tick" />' : '<circle cx="50" cy="50" r="40" class="circle" />'}</svg></div></div>`).join('')}<div class="text-slate-500 text-[8px] uppercase font-bold mt-4 tracking-widest">AI SAW: "${aiSaw.substring(0,50)}..."</div><button onclick="view='landing';render()" class="w-full max-w-[340px] mt-6 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black shadow-xl uppercase">Done</button></div>`;
             }
         }
-        render(); // Launch the app
+        render();
     </script>
 </body>
 </html>
