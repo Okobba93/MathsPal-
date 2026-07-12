@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathsPal Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 font-sans p-4">
+    <div id="app" class="max-w-md mx-auto space-y-6">
+        <h1 class="text-3xl font-black italic text-slate-900">Maths<span class="text-yellow-500">Pal</span> Admin</h1>
+        
+        <!-- Create Quiz Form -->
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 space-y-4">
+            <h2 class="font-bold text-lg">Create New Quiz</h2>
+            <input id="title" type="text" placeholder="Quiz Title" class="w-full p-3 border rounded-xl outline-none">
+            <div id="q-list" class="space-y-2">
+                <div class="flex gap-2">
+                    <input class="w-16 p-2 border rounded-lg q-num" value="1" readonly>
+                    <input class="flex-1 p-2 border rounded-lg q-ans" placeholder="Answer">
+                </div>
+            </div>
+            <button onclick="addQ()" class="text-blue-600 font-bold text-xs">+ ADD QUESTION</button>
+            <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg">GENERATE CLASS CODE</button>
+        </div>
+
+        <div id="codeDisplay" class="hidden bg-yellow-400 p-6 rounded-3xl text-center shadow-inner">
+            <p class="text-xs font-bold uppercase tracking-widest text-yellow-900">Your Class Code</p>
+            <h3 id="finalCode" class="text-4xl font-black text-slate-900">---</h3>
+            <p class="text-[10px] mt-2 text-yellow-800">Give this code to your students!</p>
+        </div>
+    </div>
+
+    <script>
+        function addQ() {
+            const list = document.getElementById('q-list');
+            const num = list.children.length + 1;
+            const div = document.createElement('div');
+            div.className = "flex gap-2";
+            div.innerHTML = `<input class="w-16 p-2 border rounded-lg q-num" value="${num}" readonly><input class="flex-1 p-2 border rounded-lg q-ans" placeholder="Answer">`;
+            list.appendChild(div);
+        }
+
+        async function saveQuiz() {
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Saving...";
+            const title = document.getElementById('title').value;
+            const nums = document.querySelectorAll('.q-num');
+            const ans = document.querySelectorAll('.q-ans');
+            let key = {};
+            nums.forEach((n, i) => { key[n.value] = ans[i].value; });
+
+            const fd = new FormData();
+            fd.append('title', title);
+            fd.append('master_key', JSON.stringify(key));
+
+            try {
+                const res = await fetch('https://mathspal-backend.onrender.com/create-assignment', { method: 'POST', body: fd });
+                const data = await res.json();
+                document.getElementById('finalCode').innerText = data.short_code;
+                document.getElementById('codeDisplay').classList.remove('hidden');
+                btn.innerText = "GENERATE CLASS CODE";
+            } catch (e) { alert("Error saving quiz. Check Render logs."); }
+        }
+    </script>
+</body>
+</html>
