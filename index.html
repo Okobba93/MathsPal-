@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Student</title>
+    <title>MathsPal - Debug</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .tick { stroke: #fbbf24; stroke-width: 6; fill: none; stroke-linecap: round; }
@@ -14,32 +14,49 @@
 <body class="bg-slate-50 text-slate-900 font-sans">
     <div id="root"></div>
     <script>
+        // --- 1. DOUBLE CHECK THIS URL ---
         const RENDER_URL = 'https://mathspal-backend.onrender.com/grade';
-        let view = 'landing', results = [], finalScore = "";
+        const ASSIGNMENT_ID = '14ddbc09-0c61-480a-a203-f88d9109d3f7'; 
+
+        let view = 'landing', results = [], finalScore = "", debugInfo = "";
 
         async function runBatchGrading() {
-            const code = document.getElementById('codeInput').value;
-            const name = document.getElementById('nameInput').value;
             const files = document.getElementById('fileIn').files;
-
-            if (!code || !name) return alert("Enter Code and Name!");
-            if (files.length === 0) return alert("Select photos of your work!");
+            const name = document.getElementById('nameInput').value;
+            if (!name || files.length === 0) return alert("Enter name and select photo!");
             
             view = 'loading'; render();
-
             const fd = new FormData();
             for (let i = 0; i < files.length; i++) fd.append('files', files[i]);
             fd.append('student_name', name);
-            fd.append('short_code', code.toUpperCase().trim());
+            fd.append('short_code', 'ignore'); // Not using short code for this test
+            fd.append('assignment_id', ASSIGNMENT_ID);
 
             try {
-                const res = await fetch(RENDER_URL, { method: 'POST', body: fd });
+                // Use a longer timeout for mobile uploads
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); 
+
+                const res = await fetch(RENDER_URL, { 
+                    method: 'POST', 
+                    body: fd,
+                    signal: controller.signal 
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`Server status ${res.status}: ${errText}`);
+                }
+
                 const data = await res.json();
-                if (data.status === "success") {
-                    results = data.results; finalScore = data.score;
-                    view = 'preview'; render();
-                } else { alert("Error: " + data.error); view = 'landing'; render(); }
-            } catch (e) { alert("Connection failed. Try again in 30s."); view = 'landing'; render(); }
+                results = data.results; 
+                finalScore = data.score;
+                view = 'preview'; render();
+            } catch (e) {
+                // THIS WILL TELL US THE REAL REASON
+                alert("CRITICAL ERROR: " + e.message);
+                view = 'landing'; render();
+            }
         }
 
         function render() {
@@ -47,40 +64,23 @@
             if (view === 'landing') {
                 root.innerHTML = `
                 <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-6">
-                    <h1 class="text-5xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+                    <h1 class="text-5xl font-black italic italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
                     <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xs space-y-4">
-                        <input id="codeInput" type="text" placeholder="CLASS CODE (e.g. MP-1234)" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-bold uppercase outline-none focus:border-yellow-400">
-                        <input id="nameInput" type="text" placeholder="YOUR NAME" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-bold outline-none focus:border-yellow-400">
-                        
+                        <input id="nameInput" type="text" placeholder="YOUR NAME" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-bold outline-none">
                         <div onclick="document.getElementById('fileIn').click()" class="border-4 border-dashed border-slate-100 p-6 rounded-2xl cursor-pointer">
-                            <p id="status" class="font-bold text-slate-400 text-xs uppercase italic">📸 TAP TO SELECT PAGES</p>
-                            <input type="file" id="fileIn" class="hidden" multiple accept="image/*" onchange="document.getElementById('status').innerText=this.files.length + ' PAGES READY'" />
+                            <p id="status" class="font-bold text-slate-400 text-xs">📸 SELECT 1 PHOTO (CROP IT SMALL)</p>
+                            <input type="file" id="fileIn" class="hidden" accept="image/*" onchange="document.getElementById('status').innerText='READY'" />
                         </div>
-                        <button onclick="runBatchGrading()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg uppercase tracking-widest">Grade Now</button>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Are you a teacher? <a href="admin.html" class="text-blue-500 underline">Login here</a></p>
+                        <button onclick="runBatchGrading()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg uppercase">Grade Now</button>
                     </div>
                 </div>`;
             } else if (view === 'loading') {
-                root.innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4"><div class="loader"></div><h2 class="text-xl font-bold italic">AI is scanning your pages...</h2></div>`;
+                root.innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4"><div class="loader"></div><h2 class="text-xl font-bold">Connecting to AI...</h2><p class="text-slate-400 text-xs">If this takes more than 30s, your photo is too large.</p></div>`;
             } else if (view === 'preview') {
-                root.innerHTML = `
-                <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs uppercase">
-                    <button onclick="view='landing';render()">← EXIT</button>
-                    <span>RESULTS</span>
-                    <span class="bg-green-600 px-3 py-1 rounded">${finalScore}</span>
-                </div>
-                <div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen space-y-4">
-                    ${results.map(r => `
-                        <div class="bg-white rounded-xl w-full max-w-[340px] p-6 flex justify-between items-center shadow-xl">
-                            <span class="font-black text-slate-300 uppercase text-xs tracking-widest font-mono text-xl italic">${r.q}</span>
-                            <div class="relative w-16 h-10 border-2 border-slate-100 rounded flex items-center justify-center">
-                                <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full">
-                                    ${r.status === 'correct' ? '<path d="M 20 50 L 45 75 L 80 25" class="tick" />' : '<circle cx="50" cy="50" r="40" class="circle" />'}
-                                </svg>
-                            </div>
-                        </div>
-                    `).join('')}
-                    <button onclick="view='landing';render()" class="w-full max-w-[340px] mt-6 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black shadow-xl uppercase tracking-widest">Done</button>
+                root.innerHTML = `<div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen text-white">
+                    <h2 class="text-2xl font-bold mb-6">Score: ${finalScore}</h2>
+                    ${results.map(r => `<div class="bg-white p-4 rounded-xl w-full mb-2 flex justify-between text-slate-900"><span>Q${r.q}</span><span>${r.status === 'correct' ? '✅' : '❌'}</span></div>`).join('')}
+                    <button onclick="view='landing';render()" class="mt-10 text-yellow-400 font-bold underline">Try Again</button>
                 </div>`;
             }
         }
