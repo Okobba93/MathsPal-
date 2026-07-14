@@ -1,128 +1,148 @@
 <!DOCTYPE html>
+<html lang="en"><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin - Production</title>
+    <title>MathsPal Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-50 font-sans p-4 text-slate-900 pb-20">
     <div class="max-w-md mx-auto space-y-6">
-        <div class="flex justify-between items-center">
-            <h1 class="text-3xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span> Admin</h1>
-            <button onclick="loadSubmissions()" class="bg-white px-3 py-1 rounded-full shadow-sm border border-slate-200 text-xs font-black">REFRESH</button>
-        </div>
+        <h1 class="text-3xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span> Admin</h1>
         
-        <!-- CREATE QUIZ -->
         <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 space-y-4">
-            <h2 class="font-black text-[10px] uppercase tracking-widest text-slate-400">New Assignment</h2>
-            <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl bg-slate-50 outline-none focus:border-yellow-400 font-bold">
-            <div id="q-list" class="space-y-2">
-                <div class="flex gap-2">
-                    <input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black text-slate-300" value="1" readonly>
-                    <input class="flex-1 p-3 border rounded-xl q-ans font-bold" placeholder="Ans">
-                </div>
-            </div>
-            <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase">+ Add Question</button>
-            <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg">GENERATE CODE</button>
-            <div id="codeBox" class="hidden bg-yellow-400 p-4 rounded-2xl text-center font-black text-2xl mt-4 tracking-tighter text-slate-900">CODE: <span id="finalCode">---</span></div>
+            <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl bg-slate-50 outline-none font-bold">
+            <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans" placeholder="Answer"></div></div>
+            <button onclick="addQ()" class="text-blue-600 font-bold text-[10px] uppercase">+ Add Question</button>
+            <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase tracking-widest">Generate Code</button>
+            <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center shadow-inner mt-4 font-black text-3xl animate-pulse">CODE: <span id="finalCode">---</span></div>
         </div>
 
-        <!-- ANALYTICS & GRADES -->
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 space-y-6">
-            <div class="flex justify-between items-center border-b pb-4">
-                <h3 class="text-lg font-black tracking-tight">Live Submissions</h3>
-                <div id="classAvg" class="text-right">
-                    <p class="text-[7px] font-black text-slate-300 uppercase leading-none">Class Avg</p>
-                    <p id="avgVal" class="text-lg font-black text-green-600 leading-none">--%</p>
-                </div>
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-black">Student Grades</h3>
+                <button onclick="loadSubmissions()" class="text-xs font-black bg-slate-100 px-3 py-1 rounded-full">REFRESH</button>
             </div>
-
             <div id="submissions-list" class="space-y-3">
-                <!-- Data appears here -->
-                <p class="text-center text-slate-300 italic py-6 text-xs">Connecting to database...</p>
+                <p class="text-center text-slate-300 italic py-6 text-xs">Connecting...</p>
             </div>
         </div>
     </div>
 
     <script>
-        const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
-        const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
-        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+        const API_URL = 'https://mathspal-backend.onrender.com';
 
         function addQ() {
             const list = document.getElementById('q-list');
             const num = list.children.length + 1;
             const div = document.createElement('div');
-            div.className = "flex gap-2 mt-2";
-            div.innerHTML = `<input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black text-slate-300" value="${num}" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold" placeholder="Ans">`;
+            div.className = "flex gap-2 mb-2";
+            div.innerHTML = `<input class="w-12 p-3 border rounded-xl q-num" value="${num}" readonly><input class="flex-1 p-3 border rounded-xl q-ans" placeholder="Ans">`;
             list.appendChild(div);
         }
 
         async function saveQuiz() {
-            const btn = document.getElementById('saveBtn');
             const title = document.getElementById('title').value;
-            if(!title) return alert("Enter a title!");
-            btn.innerText = "SAVING...";
             const answers = {};
             document.querySelectorAll('.q-ans').forEach((input, i) => { answers[i+1] = input.value; });
-
             const fd = new FormData();
             fd.append('title', title);
             fd.append('master_key', JSON.stringify(answers));
-
-            try {
-                const res = await fetch('https://mathspal-backend.onrender.com/create-assignment', { method: 'POST', body: fd });
-                const data = await res.json();
-                document.getElementById('finalCode').innerText = data.short_code;
-                document.getElementById('codeBox').classList.remove('hidden');
-                btn.innerText = "GENERATE CODE";
-            } catch (e) { alert("Server error. Check Render Logs."); btn.innerText = "GENERATE CODE"; }
+            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd }).then(r => r.json());
+            document.getElementById('finalCode').innerText = res.short_code;
+            document.getElementById('codeBox').classList.remove('hidden');
         }
 
         async function loadSubmissions() {
             const list = document.getElementById('submissions-list');
-            const avgDisplay = document.getElementById('avgVal');
-
             try {
-                const { data, error } = await supabaseClient
-                    .from('submissions')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    list.innerHTML = `<p class="text-red-500 font-bold text-center text-[10px]">DATABASE ERROR: ${error.message}</p>`;
-                    return;
-                }
-
-                if (!data || data.length === 0) {
-                    list.innerHTML = '<p class="text-center text-slate-300 py-10 font-bold italic text-xs">No student grades yet.</p>';
-                    return;
-                }
-
-                // Update List
-                list.innerHTML = data.map(s => `
-                    <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div>
-                            <p class="font-black text-slate-800 text-sm capitalize">${s.student_name || 'Anonymous'}</p>
-                            <p class="text-[7px] font-bold text-slate-300 uppercase tracking-widest leading-none mt-1">Quiz Submission</p>
+                const res = await fetch(`${API_URL}/submissions`).then(r => r.json());
+                if (res.status === "success") {
+                    list.innerHTML = res.data.map(s => `
+                        <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="font-black text-slate-800 text-sm capitalize">${s.student_name}</p>
+                            <p class="font-black text-green-600">SCORE: ${s.score}/5</p>
                         </div>
-                        <div class="text-right">
-                            <p class="font-black text-slate-900 text-lg leading-none">${s.score}/5</p>
-                        </div>
-                    </div>
-                `).join('');
-
-                // Update Average
-                const totalScore = data.reduce((acc, curr) => acc + (curr.score || 0), 0);
-                avgDisplay.innerText = Math.round((totalScore / (data.length * 5)) * 100) + "%";
-
+                    `).join('');
+                }
             } catch (e) {
-                list.innerHTML = `<p class="text-red-500 font-bold text-center text-[10px]">SYSTEM ERROR: ${e.message}</p>`;
+                list.innerHTML = `<p class="text-red-500 font-bold text-center text-[10px]">RETRYING CONNECTION...</p>`;
             }
         }
+        setInterval(loadSubmissions, 5000);
+        loadSubmissions();
+    </script>
+</body>
+                                 </html>
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathsPal Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 font-sans p-4 text-slate-900 pb-20">
+    <div class="max-w-md mx-auto space-y-6">
+        <h1 class="text-3xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span> Admin</h1>
+        
+        <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 space-y-4">
+            <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl bg-slate-50 outline-none font-bold">
+            <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans" placeholder="Answer"></div></div>
+            <button onclick="addQ()" class="text-blue-600 font-bold text-[10px] uppercase">+ Add Question</button>
+            <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase tracking-widest">Generate Code</button>
+            <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center shadow-inner mt-4 font-black text-3xl animate-pulse">CODE: <span id="finalCode">---</span></div>
+        </div>
 
-        // Start checking for data
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-black">Student Grades</h3>
+                <button onclick="loadSubmissions()" class="text-xs font-black bg-slate-100 px-3 py-1 rounded-full">REFRESH</button>
+            </div>
+            <div id="submissions-list" class="space-y-3">
+                <p class="text-center text-slate-300 italic py-6 text-xs">Connecting...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://mathspal-backend.onrender.com';
+
+        function addQ() {
+            const list = document.getElementById('q-list');
+            const num = list.children.length + 1;
+            const div = document.createElement('div');
+            div.className = "flex gap-2 mb-2";
+            div.innerHTML = `<input class="w-12 p-3 border rounded-xl q-num" value="${num}" readonly><input class="flex-1 p-3 border rounded-xl q-ans" placeholder="Ans">`;
+            list.appendChild(div);
+        }
+
+        async function saveQuiz() {
+            const title = document.getElementById('title').value;
+            const answers = {};
+            document.querySelectorAll('.q-ans').forEach((input, i) => { answers[i+1] = input.value; });
+            const fd = new FormData();
+            fd.append('title', title);
+            fd.append('master_key', JSON.stringify(answers));
+            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd }).then(r => r.json());
+            document.getElementById('finalCode').innerText = res.short_code;
+            document.getElementById('codeBox').classList.remove('hidden');
+        }
+
+        async function loadSubmissions() {
+            const list = document.getElementById('submissions-list');
+            try {
+                const res = await fetch(`${API_URL}/submissions`).then(r => r.json());
+                if (res.status === "success") {
+                    list.innerHTML = res.data.map(s => `
+                        <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="font-black text-slate-800 text-sm capitalize">${s.student_name}</p>
+                            <p class="font-black text-green-600">SCORE: ${s.score}/5</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                list.innerHTML = `<p class="text-red-500 font-bold text-center text-[10px]">RETRYING CONNECTION...</p>`;
+            }
+        }
+        setInterval(loadSubmissions, 5000);
         loadSubmissions();
     </script>
 </body>
