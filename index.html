@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal - Debug</title>
+    <title>MathsPal - Safe Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .tick { stroke: #fbbf24; stroke-width: 6; fill: none; stroke-linecap: round; }
@@ -14,11 +14,11 @@
 <body class="bg-slate-50 text-slate-900 font-sans">
     <div id="root"></div>
     <script>
-        // --- 1. DOUBLE CHECK THIS URL ---
-        const RENDER_URL = 'https://mathspal-backend.onrender.com/grade';
+        // --- !!! CHECK THIS ID CAREFULLY !!! ---
         const ASSIGNMENT_ID = '14ddbc09-0c61-480a-a203-f88d9109d3f7'; 
+        const RENDER_URL = 'https://mathspal-backend.onrender.com/grade';
 
-        let view = 'landing', results = [], finalScore = "", debugInfo = "";
+        let view = 'landing', results = [], finalScore = "";
 
         async function runBatchGrading() {
             const files = document.getElementById('fileIn').files;
@@ -29,32 +29,25 @@
             const fd = new FormData();
             for (let i = 0; i < files.length; i++) fd.append('files', files[i]);
             fd.append('student_name', name);
-            fd.append('short_code', 'ignore'); // Not using short code for this test
             fd.append('assignment_id', ASSIGNMENT_ID);
 
             try {
-                // Use a longer timeout for mobile uploads
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); 
-
-                const res = await fetch(RENDER_URL, { 
-                    method: 'POST', 
-                    body: fd,
-                    signal: controller.signal 
-                });
-
-                if (!res.ok) {
-                    const errText = await res.text();
-                    throw new Error(`Server status ${res.status}: ${errText}`);
-                }
-
+                const res = await fetch(RENDER_URL, { method: 'POST', body: fd });
                 const data = await res.json();
-                results = data.results; 
-                finalScore = data.score;
-                view = 'preview'; render();
+
+                // SAFETY SHIELD: Check if the server actually succeeded
+                if (data.status === "success") {
+                    results = data.results; 
+                    finalScore = data.score;
+                    view = 'preview'; 
+                } else {
+                    // Show the specific error from the server (e.g. "ID not found")
+                    alert("SERVER ERROR: " + (data.error || "Unknown error"));
+                    view = 'landing';
+                }
+                render();
             } catch (e) {
-                // THIS WILL TELL US THE REAL REASON
-                alert("CRITICAL ERROR: " + e.message);
+                alert("CONNECTION ERROR: " + e.message);
                 view = 'landing'; render();
             }
         }
@@ -64,27 +57,19 @@
             if (view === 'landing') {
                 root.innerHTML = `
                 <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-6">
-                    <h1 class="text-5xl font-black italic italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
-                    <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xs space-y-4">
+                    <h1 class="text-5xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+                    <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xs space-y-4 text-center">
                         <input id="nameInput" type="text" placeholder="YOUR NAME" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-bold outline-none">
                         <div onclick="document.getElementById('fileIn').click()" class="border-4 border-dashed border-slate-100 p-6 rounded-2xl cursor-pointer">
-                            <p id="status" class="font-bold text-slate-400 text-xs">📸 SELECT 1 PHOTO (CROP IT SMALL)</p>
+                            <p id="status" class="font-bold text-slate-400 text-xs uppercase">📸 SELECT PHOTO (CROP SMALL!)</p>
                             <input type="file" id="fileIn" class="hidden" accept="image/*" onchange="document.getElementById('status').innerText='READY'" />
                         </div>
-                        <button onclick="runBatchGrading()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg uppercase">Grade Now</button>
+                        <button onclick="runBatchGrading()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg">Grade Now</button>
                     </div>
                 </div>`;
             } else if (view === 'loading') {
-                root.innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4"><div class="loader"></div><h2 class="text-xl font-bold">Connecting to AI...</h2><p class="text-slate-400 text-xs">If this takes more than 30s, your photo is too large.</p></div>`;
+                root.innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4"><div class="loader"></div><h2 class="text-xl font-bold">Connecting to AI...</h2></div>`;
             } else if (view === 'preview') {
-                root.innerHTML = `<div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen text-white">
-                    <h2 class="text-2xl font-bold mb-6">Score: ${finalScore}</h2>
-                    ${results.map(r => `<div class="bg-white p-4 rounded-xl w-full mb-2 flex justify-between text-slate-900"><span>Q${r.q}</span><span>${r.status === 'correct' ? '✅' : '❌'}</span></div>`).join('')}
-                    <button onclick="view='landing';render()" class="mt-10 text-yellow-400 font-bold underline">Try Again</button>
-                </div>`;
-            }
-        }
-        render();
-    </script>
-</body>
-</html>
+                root.innerHTML = `
+                <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs uppercase">
+                    <button onclick="view='landing';render()">← BACK</bu
