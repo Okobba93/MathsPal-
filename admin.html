@@ -4,20 +4,19 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MathsPal Admin - Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-50 font-sans p-4 text-slate-900 pb-20">
     <div class="max-w-md mx-auto space-y-6">
         <div class="flex justify-between items-center">
             <h1 class="text-3xl font-black italic tracking-tighter">Maths<span class="text-yellow-500 underline">Pal</span> Admin</h1>
-            <button onclick="loadSubmissions()" class="bg-white p-2 rounded-full shadow-sm border border-slate-200 text-xs font-black">🔄 REFRESH</button>
+            <button onclick="loadSubmissions()" class="bg-white px-3 py-1 rounded-full shadow-sm border border-slate-200 text-[10px] font-black uppercase">Refresh</button>
         </div>
         
         <!-- ANALYTICS HEATMAP SECTION -->
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 space-y-4">
             <header class="flex justify-between items-center border-b pb-2">
                 <h2 class="font-black text-[10px] uppercase tracking-widest text-slate-400 leading-none">Class Insights (Heatmap)</h2>
-                <div id="avgBadge" class="bg-green-100 text-green-700 px-2 py-1 rounded-md text-[10px] font-black leading-none">AVG: --%</div>
+                <div id="avgBadge" class="bg-green-100 text-green-700 px-2 py-1 rounded-md text-[10px] font-black leading-none text-xs">AVG: --%</div>
             </header>
             
             <div class="overflow-x-auto">
@@ -41,11 +40,11 @@
         <div class="space-y-3">
             <h3 class="font-black text-[10px] uppercase tracking-widest text-slate-400 pl-2">Individual Submissions</h3>
             <div id="submissions-list" class="space-y-3">
-                <p class="text-center text-slate-300 italic py-6 text-xs">Fetching data...</p>
+                <p class="text-center text-slate-300 italic py-6 text-xs">Fetching data via Render...</p>
             </div>
         </div>
 
-        <!-- CREATE QUIZ (Hidden by default to save space) -->
+        <!-- CREATE QUIZ -->
         <details class="bg-slate-200/50 rounded-2xl overflow-hidden">
             <summary class="p-4 font-bold text-xs uppercase cursor-pointer text-slate-500 text-center">Open Quiz Creator</summary>
             <div class="bg-white p-6 space-y-4">
@@ -59,9 +58,7 @@
     </div>
 
     <script>
-        const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
-        const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
-        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+        const API_URL = 'https://mathspal-backend.onrender.com';
 
         function addQ() {
             const list = document.getElementById('q-list');
@@ -73,13 +70,14 @@
         }
 
         async function saveQuiz() {
+            const btn = document.getElementById('saveBtn');
             const title = document.getElementById('title').value;
             const answers = {};
             document.querySelectorAll('.q-ans').forEach((input, i) => { answers[i+1] = input.value; });
             const fd = new FormData();
             fd.append('title', title);
             fd.append('master_key', JSON.stringify(answers));
-            const res = await fetch('https://mathspal-backend.onrender.com/create-assignment', { method: 'POST', body: fd }).then(r => r.json());
+            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd }).then(r => r.json());
             document.getElementById('finalCode').innerText = res.short_code;
             document.getElementById('codeBox').classList.remove('hidden');
         }
@@ -90,15 +88,20 @@
             const avgBadge = document.getElementById('avgBadge');
 
             try {
-                const { data, error } = await supabaseClient.from('submissions').select('*').order('created_at', { ascending: false });
-                if (error) throw error;
+                // THE FIX: Fetch from Render, NOT directly from Supabase
+                const response = await fetch(`${API_URL}/submissions`);
+                const result = await response.json();
+
+                if (result.status !== "success") throw new Error(result.error);
+                const data = result.data;
+
                 if (!data || data.length === 0) {
-                    list.innerHTML = '<p class="text-center text-slate-300 py-10 text-xs">No grades found.</p>';
+                    list.innerHTML = '<p class="text-center text-slate-300 py-10 text-xs">No grades found yet.</p>';
                     return;
                 }
 
                 // --- CALC ANALYTICS ---
-                let stats = {}; // { "1": {correct: 0, total: 0}, "2": ... }
+                let stats = {};
                 data.forEach(sub => {
                     if (sub.results_json) {
                         sub.results_json.forEach(res => {
@@ -113,14 +116,13 @@
                 heatmap.innerHTML = Object.keys(stats).sort((a,b) => a-b).map(q => {
                     const s = stats[q];
                     const rate = Math.round((s.correct / s.total) * 100);
-                    const isLow = rate < 50;
                     return `
                         <tr>
                             <td class="p-3 font-bold text-slate-700">Q${q}</td>
                             <td class="p-3 text-center text-green-600 font-bold">${s.correct}</td>
                             <td class="p-3 text-center text-red-400 font-bold">${s.total - s.correct}</td>
-                            <td class="p-3 text-right font-black ${isLow ? 'text-red-600' : 'text-green-600'}">
-                                ${rate}% ${isLow ? '🚩' : ''}
+                            <td class="p-3 text-right font-black ${rate < 50 ? 'text-red-600' : 'text-green-600'}">
+                                ${rate}% ${rate < 50 ? '🚩' : ''}
                             </td>
                         </tr>
                     `;
@@ -128,10 +130,10 @@
 
                 // --- RENDER LIST ---
                 list.innerHTML = data.map(s => `
-                    <div class="flex justify-between items-center p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-center p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm mb-3">
                         <div>
                             <p class="font-black text-slate-800 text-sm capitalize">${s.student_name}</p>
-                            <p class="text-[8px] font-bold text-slate-300 uppercase tracking-widest leading-none mt-1">Submission #${s.id.substring(0,4)}</p>
+                            <p class="text-[7px] font-bold text-slate-300 uppercase tracking-widest leading-none mt-1">Quiz Submission</p>
                         </div>
                         <div class="text-right">
                             <p class="font-black text-slate-900 text-lg leading-none">${s.score}</p>
@@ -139,17 +141,15 @@
                     </div>
                 `).join('');
 
-                // Update Class Average badge
+                const totalPoints = data.reduce((acc, curr) => acc + (curr.score || 0), 0);
                 const totalPossible = data.length * Object.keys(stats).length;
-                const totalActual = data.reduce((acc, curr) => acc + (curr.score || 0), 0);
-                avgBadge.innerText = "AVG: " + (totalPossible > 0 ? Math.round((totalActual / totalPossible) * 100) : 0) + "%";
+                avgBadge.innerText = "AVG: " + Math.round((totalPoints / totalPossible) * 100) + "%";
 
             } catch (e) {
-                list.innerHTML = `<p class="text-red-500 font-bold text-center text-[10px]">ERROR: ${e.message}</p>`;
+                list.innerHTML = `<p class="text-red-500 font-bold text-center text-[10px]">RENDER ERROR: ${e.message}</p>`;
             }
         }
 
-        setInterval(loadSubmissions, 10000); // Auto-refresh every 10 seconds
         loadSubmissions();
     </script>
 </body>
