@@ -10,6 +10,7 @@
         .loader { border: 6px solid #f3f3f3; border-top: 6px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .hidden { display: none !important; }
+        .handwriting { font-family: 'Courier New', monospace; font-weight: bold; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
@@ -22,14 +23,23 @@
             <input id="codeInput" type="text" placeholder="CLASS CODE (e.g. MP-1234)" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-black uppercase outline-none focus:border-yellow-400">
             <input id="nameInput" type="text" placeholder="YOUR NAME" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-bold outline-none focus:border-yellow-400">
             
-            <!-- UPLOAD BOX (Now with Direct Camera hint) -->
-            <div onclick="document.getElementById('fileIn').click()" class="border-4 border-dashed border-slate-100 p-6 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
-                <p id="statusLabel" class="font-bold text-slate-400 text-[10px] uppercase">📸 TAP TO SNAP OR UPLOAD</p>
-                <!-- 'multiple' allows batch grading, 'accept' triggers camera/gallery choice -->
-                <input type="file" id="fileIn" class="hidden" accept="image/*" multiple onchange="handleFileSelection(this)" />
+            <!-- NEW DUAL-ACCESS UPLOAD BOX -->
+            <div class="border-4 border-dashed border-slate-100 p-6 rounded-2xl space-y-4">
+                <p id="statusLabel" class="font-bold text-slate-400 text-[10px] uppercase tracking-widest">Select Your Pages</p>
+                
+                <div class="flex gap-2">
+                    <!-- Button 1: Direct Camera -->
+                    <button onclick="document.getElementById('cameraIn').click()" class="flex-1 bg-slate-100 py-3 rounded-xl text-xl shadow-sm active:scale-95 transition">📸</button>
+                    <!-- Button 2: Gallery/Albums -->
+                    <button onclick="document.getElementById('galleryIn').click()" class="flex-1 bg-slate-100 py-3 rounded-xl text-xl shadow-sm active:scale-95 transition">🖼️</button>
+                </div>
+
+                <!-- Hidden Inputs -->
+                <input type="file" id="cameraIn" class="hidden" accept="image/*" capture="environment" onchange="addFiles(this.files)" />
+                <input type="file" id="galleryIn" class="hidden" accept="image/*" multiple onchange="addFiles(this.files)" />
             </div>
 
-            <button id="mainBtn" onclick="handleGrade()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition">GRADE NOW</button>
+            <button onclick="handleGrade()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition">GRADE BATCH</button>
             <p class="text-[10px] text-slate-400 font-bold uppercase">Teacher? <a href="admin.html" class="text-blue-500 underline font-black">Login</a></p>
         </div>
     </div>
@@ -38,20 +48,22 @@
     <div id="view-loading" class="hidden min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4 bg-white">
         <div class="loader"></div>
         <h2 class="text-xl font-bold italic text-slate-800">Optimizing & Scanning...</h2>
-        <p id="loadingMsg" class="text-slate-400 text-xs font-bold uppercase tracking-widest">Shrinking photos for speed</p>
+        <p id="loadingMsg" class="text-slate-400 text-xs font-bold uppercase">Shrinking photos for speed</p>
     </div>
 
     <!-- 3. RESULTS PREVIEW -->
     <div id="view-preview" class="hidden">
-        <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs">
+        <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs uppercase">
             <button onclick="location.reload()">← EXIT</button>
-            <span id="scoreBadge" class="bg-green-600 px-3 py-1 rounded uppercase">SCORE: 0/0</span>
+            <span>Grading Result</span>
+            <span id="scoreBadge" class="bg-green-600 px-3 py-1 rounded">0/0</span>
         </div>
         <div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen space-y-4" id="resultsList"></div>
     </div>
 
     <script>
         const RENDER_URL = 'https://mathspal-backend.onrender.com/grade';
+        let allFiles = []; // This stores our optimized files
 
         function switchView(v) {
             document.getElementById('view-landing').classList.add('hidden');
@@ -60,37 +72,22 @@
             document.getElementById('view-' + v).classList.remove('hidden');
         }
 
-        function handleFileSelection(input) {
-            const count = input.files.length;
-            document.getElementById('statusLabel').innerText = count > 0 ? `✅ ${count} PAGES READY` : "📸 TAP TO SNAP OR UPLOAD";
-        }
-
         // --- THE AUTO-SHRINKER ENGINE ---
         async function compressImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = (event) => {
+                reader.onload = (e) => {
                     const img = new Image();
-                    img.src = event.target.result;
+                    img.src = e.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-
-                        // Max resolution: 1200px (Perfect for OCR clarity)
-                        const MAX_WIDTH = 1200;
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
+                        let w = img.width, h = img.height;
+                        const MAX = 1200;
+                        if (w > MAX) { h *= MAX / w; w = MAX; }
+                        canvas.width = w; canvas.height = h;
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        // Convert to lightweight JPEG (0.7 quality)
+                        ctx.drawImage(img, 0, 0, w, h);
                         canvas.toBlob((blob) => {
                             resolve(new File([blob], file.name, { type: 'image/jpeg' }));
                         }, 'image/jpeg', 0.7);
@@ -99,28 +96,32 @@
             });
         }
 
+        async function addFiles(fileList) {
+            const label = document.getElementById('statusLabel');
+            label.innerText = "SHRINKING...";
+            
+            for (let i = 0; i < fileList.length; i++) {
+                const smallFile = await compressImage(fileList[i]);
+                allFiles.push(smallFile);
+            }
+            
+            label.innerText = `✅ ${allFiles.length} PAGES READY`;
+        }
+
         async function handleGrade() {
             const code = document.getElementById('codeInput').value.trim();
             const name = document.getElementById('nameInput').value.trim();
-            const files = document.getElementById('fileIn').files;
 
             if (!code || !name) return alert("Enter Code and Name!");
-            if (files.length === 0) return alert("Take a photo first!");
+            if (allFiles.length === 0) return alert("Take a photo or select from gallery first!");
 
             switchView('loading');
+            document.getElementById('loadingMsg').innerText = "Uploading to AI Brain...";
 
             const fd = new FormData();
             fd.append('student_name', name);
             fd.append('short_code', code.toUpperCase());
-
-            // AUTO-SHRINK LOOP
-            for (let i = 0; i < files.length; i++) {
-                document.getElementById('loadingMsg').innerText = `Compressing Page ${i+1}...`;
-                const smallFile = await compressImage(files[i]);
-                fd.append('files', smallFile);
-            }
-
-            document.getElementById('loadingMsg').innerText = "AI is scanning handwriting...";
+            allFiles.forEach(file => fd.append('files', file));
 
             try {
                 const res = await fetch(RENDER_URL, { method: 'POST', body: fd });
@@ -134,20 +135,18 @@
                             <span class="font-black text-slate-300 italic text-xl uppercase tracking-tighter">Question ${r.q}</span>
                             <div class="relative w-16 h-10 border-2 border-slate-100 rounded flex items-center justify-center">
                                 <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full">
-                                    ${r.status === 'correct' ? 
-                                        '<path d="M 20 50 L 45 75 L 80 25" class="tick" />' : 
-                                        '<circle cx="50" cy="50" r="40" class="circle" />'}
+                                    ${r.status === 'correct' ? '<path d="M 20 50 L 45 75 L 80 25" class="tick" />' : '<circle cx="50" cy="50" r="40" class="circle" />'}
                                 </svg>
                             </div>
                         </div>
-                    `).join('') + `<button onclick="location.reload()" class="w-full max-w-[340px] mt-6 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black shadow-xl">DONE</button>`;
+                    `).join('') + `<button onclick="location.reload()" class="w-full max-w-[340px] mt-6 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black shadow-xl uppercase">Done</button>`;
                     switchView('preview');
                 } else {
-                    alert("ERROR: " + data.error);
+                    alert("AI Error: " + data.error);
                     location.reload();
                 }
             } catch (e) {
-                alert("Connection lost. Tap Grade again in 30 seconds.");
+                alert("Connection failed. Try again in 30s.");
                 location.reload();
             }
         }
