@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Student Portal</title>
+    <title>MathsPal - Camera Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .tick { stroke: #fbbf24; stroke-width: 6; fill: none; stroke-linecap: round; }
@@ -10,7 +10,7 @@
         .loader { border: 6px solid #f3f3f3; border-top: 6px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .hidden { display: none !important; }
-        .handwriting { font-family: 'Courier New', monospace; font-weight: bold; }
+        #cameraView { transform: scaleX(1); width: 100%; border-radius: 20px; background: black; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
@@ -20,59 +20,111 @@
         <h1 class="text-5xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
         
         <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xs space-y-4 border border-slate-100">
-            <input id="codeInput" type="text" placeholder="CLASS CODE (e.g. MP-1234)" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-black uppercase outline-none focus:border-yellow-400">
+            <input id="codeInput" type="text" placeholder="CLASS CODE" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-black uppercase outline-none focus:border-yellow-400">
             <input id="nameInput" type="text" placeholder="YOUR NAME" class="w-full p-4 border-2 border-slate-100 rounded-2xl text-center font-bold outline-none focus:border-yellow-400">
             
-            <!-- NEW DUAL-ACCESS UPLOAD BOX -->
             <div class="border-4 border-dashed border-slate-100 p-6 rounded-2xl space-y-4">
-                <p id="statusLabel" class="font-bold text-slate-400 text-[10px] uppercase tracking-widest">Select Your Pages</p>
-                
+                <p id="statusLabel" class="font-bold text-slate-400 text-[10px] uppercase">Capture Pages</p>
                 <div class="flex gap-2">
-                    <!-- Button 1: Direct Camera -->
-                    <button onclick="document.getElementById('cameraIn').click()" class="flex-1 bg-slate-100 py-3 rounded-xl text-xl shadow-sm active:scale-95 transition">📸</button>
-                    <!-- Button 2: Gallery/Albums -->
-                    <button onclick="document.getElementById('galleryIn').click()" class="flex-1 bg-slate-100 py-3 rounded-xl text-xl shadow-sm active:scale-95 transition">🖼️</button>
+                    <button onclick="startCamera()" class="flex-1 bg-yellow-400 py-4 rounded-xl text-xl shadow-md active:scale-95 transition">📸</button>
+                    <button onclick="document.getElementById('galleryIn').click()" class="flex-1 bg-slate-900 text-white py-4 rounded-xl text-xl shadow-md active:scale-95 transition">🖼️</button>
                 </div>
-
-                <!-- Hidden Inputs -->
-                <input type="file" id="cameraIn" class="hidden" accept="image/*" capture="environment" onchange="addFiles(this.files)" />
-                <input type="file" id="galleryIn" class="hidden" accept="image/*" multiple onchange="addFiles(this.files)" />
+                <input type="file" id="galleryIn" class="hidden" accept="image/*" multiple onchange="addGalleryFiles(this.files)" />
             </div>
 
-            <button onclick="handleGrade()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition">GRADE BATCH</button>
-            <p class="text-[10px] text-slate-400 font-bold uppercase">Teacher? <a href="admin.html" class="text-blue-500 underline font-black">Login</a></p>
+            <button onclick="handleGrade()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition uppercase">Grade Batch</button>
+            <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">Teacher? <a href="admin.html" class="text-blue-500 underline font-black">Login</a></p>
         </div>
     </div>
 
-    <!-- 2. LOADING SCREEN -->
+    <!-- 2. LIVE CAMERA OVERLAY -->
+    <div id="view-camera" class="hidden fixed inset-0 bg-black z-50 flex flex-col p-6 space-y-6">
+        <div class="flex justify-between items-center text-white">
+            <h2 class="font-bold uppercase text-xs tracking-widest">Live Viewfinder</h2>
+            <button onclick="stopCamera()" class="bg-red-500/20 text-red-500 px-4 py-1 rounded-full text-xs font-black uppercase">Close</button>
+        </div>
+        <video id="video" autoplay playsinline class="shadow-2xl border-2 border-white/10"></video>
+        <div class="flex justify-center pt-4">
+            <button onclick="takeSnapshot()" class="w-20 h-20 bg-white rounded-full border-8 border-slate-800 shadow-white/20 active:scale-90 transition"></button>
+        </div>
+        <p class="text-white/40 text-center text-[10px] font-bold uppercase tracking-widest">Tap to snap a page</p>
+    </div>
+
+    <!-- 3. LOADING SCREEN -->
     <div id="view-loading" class="hidden min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4 bg-white">
         <div class="loader"></div>
-        <h2 class="text-xl font-bold italic text-slate-800">Optimizing & Scanning...</h2>
+        <h2 class="text-xl font-bold italic">MathsPal is Processing...</h2>
         <p id="loadingMsg" class="text-slate-400 text-xs font-bold uppercase">Shrinking photos for speed</p>
     </div>
 
-    <!-- 3. RESULTS PREVIEW -->
+    <!-- 4. RESULTS PREVIEW -->
     <div id="view-preview" class="hidden">
-        <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs uppercase">
+        <div class="bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 shadow-lg font-bold text-xs">
             <button onclick="location.reload()">← EXIT</button>
-            <span>Grading Result</span>
-            <span id="scoreBadge" class="bg-green-600 px-3 py-1 rounded">0/0</span>
+            <span id="scoreBadge" class="bg-green-600 px-3 py-1 rounded uppercase">SCORE: 0/0</span>
         </div>
         <div class="p-6 flex flex-col items-center bg-slate-800 min-h-screen space-y-4" id="resultsList"></div>
     </div>
 
     <script>
         const RENDER_URL = 'https://mathspal-backend.onrender.com/grade';
-        let allFiles = []; // This stores our optimized files
+        let allFiles = [];
+        let stream = null;
 
         function switchView(v) {
             document.getElementById('view-landing').classList.add('hidden');
+            document.getElementById('view-camera').classList.add('hidden');
             document.getElementById('view-loading').classList.add('hidden');
             document.getElementById('view-preview').classList.add('hidden');
             document.getElementById('view-' + v).classList.remove('hidden');
         }
 
-        // --- THE AUTO-SHRINKER ENGINE ---
+        // --- CAMERA LOGIC ---
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" }, 
+                    audio: false 
+                });
+                document.getElementById('video').srcObject = stream;
+                switchView('camera');
+            } catch (err) {
+                alert("Camera access denied or not found.");
+            }
+        }
+
+        function stopCamera() {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            switchView('landing');
+        }
+
+        async function takeSnapshot() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `snap_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                const smallFile = await compressImage(file);
+                allFiles.push(smallFile);
+                document.getElementById('statusLabel').innerText = `✅ ${allFiles.length} PAGES READY`;
+                stopCamera();
+            }, 'image/jpeg', 0.7);
+        }
+
+        async function addGalleryFiles(fileList) {
+            document.getElementById('statusLabel').innerText = "SHRINKING...";
+            for (let i = 0; i < fileList.length; i++) {
+                const smallFile = await compressImage(fileList[i]);
+                allFiles.push(smallFile);
+            }
+            document.getElementById('statusLabel').innerText = `✅ ${allFiles.length} PAGES READY`;
+        }
+
+        // --- THE AUTO-SHRINKER ---
         async function compressImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -96,28 +148,13 @@
             });
         }
 
-        async function addFiles(fileList) {
-            const label = document.getElementById('statusLabel');
-            label.innerText = "SHRINKING...";
-            
-            for (let i = 0; i < fileList.length; i++) {
-                const smallFile = await compressImage(fileList[i]);
-                allFiles.push(smallFile);
-            }
-            
-            label.innerText = `✅ ${allFiles.length} PAGES READY`;
-        }
-
         async function handleGrade() {
             const code = document.getElementById('codeInput').value.trim();
             const name = document.getElementById('nameInput').value.trim();
-
             if (!code || !name) return alert("Enter Code and Name!");
-            if (allFiles.length === 0) return alert("Take a photo or select from gallery first!");
+            if (allFiles.length === 0) return alert("Take a photo first!");
 
             switchView('loading');
-            document.getElementById('loadingMsg').innerText = "Uploading to AI Brain...";
-
             const fd = new FormData();
             fd.append('student_name', name);
             fd.append('short_code', code.toUpperCase());
@@ -126,13 +163,12 @@
             try {
                 const res = await fetch(RENDER_URL, { method: 'POST', body: fd });
                 const data = await res.json();
-
                 if (data.status === "success") {
                     document.getElementById('scoreBadge').innerText = "SCORE: " + data.score;
                     const list = document.getElementById('resultsList');
                     list.innerHTML = data.results.map(r => `
                         <div class="bg-white rounded-xl w-full max-w-[340px] p-6 flex justify-between items-center shadow-xl">
-                            <span class="font-black text-slate-300 italic text-xl uppercase tracking-tighter">Question ${r.q}</span>
+                            <span class="font-black text-slate-300 italic text-xl uppercase">Q${r.q}</span>
                             <div class="relative w-16 h-10 border-2 border-slate-100 rounded flex items-center justify-center">
                                 <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full">
                                     ${r.status === 'correct' ? '<path d="M 20 50 L 45 75 L 80 25" class="tick" />' : '<circle cx="50" cy="50" r="40" class="circle" />'}
@@ -141,14 +177,8 @@
                         </div>
                     `).join('') + `<button onclick="location.reload()" class="w-full max-w-[340px] mt-6 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black shadow-xl uppercase">Done</button>`;
                     switchView('preview');
-                } else {
-                    alert("AI Error: " + data.error);
-                    location.reload();
-                }
-            } catch (e) {
-                alert("Connection failed. Try again in 30s.");
-                location.reload();
-            }
+                } else { alert("AI Error: " + data.error); location.reload(); }
+            } catch (e) { alert("Connection lost. Tap Grade again."); location.reload(); }
         }
     </script>
 </body>
