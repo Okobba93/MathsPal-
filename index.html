@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal | AI Math Grading</title>
+    <title>MathsPal CBE | AI Math Grading</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
@@ -10,31 +10,69 @@
         .hero-gradient { background: radial-gradient(circle at top right, #fefce8, #f8fafc); }
     </style>
 </head>
-<body class="bg-white text-slate-900 hero-gradient min-h-screen font-sans">
-    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto">
-        <h1 class="text-2xl font-800 italic tracking-tighter">Maths<span class="text-yellow-500 underline decoration-wavy decoration-slate-900 text-2xl">Pal</span></h1>
+<body class="bg-white text-slate-900 hero-gradient min-h-screen">
+
+    <!-- NAVIGATION -->
+    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto font-sans">
+        <h1 class="text-2xl font-800 italic tracking-tighter flex items-center">
+            Maths<span class="text-yellow-500 underline decoration-wavy decoration-slate-900 mr-2">Pal</span>
+            <span class="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded-md not-italic font-black tracking-widest uppercase">CBE</span>
+        </h1>
         <button onclick="location.href='admin.html'" class="text-[10px] font-black uppercase tracking-widest border-b-2 border-slate-900 pb-1">Teacher Portal</button>
     </nav>
 
-    <div class="max-w-4xl mx-auto px-6 pt-10 pb-20 text-center space-y-8">
+    <!-- HERO SECTION -->
+    <div class="max-w-4xl mx-auto px-6 pt-10 pb-20 text-center space-y-8 font-sans">
         <div class="inline-block bg-yellow-100 text-yellow-700 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4">
             🚀 The Future of CBE Grading
         </div>
         <h2 class="text-5xl md:text-7xl font-800 tracking-tight leading-tight text-slate-900">
-            Grade Math in <span class="text-yellow-500">Seconds</span>, Not Hours.
+            Grade Math in <span class="text-yellow-500 underline decoration-wavy decoration-slate-100">Seconds</span>, Not Hours.
         </h2>
         <p class="text-slate-500 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
-            The first AI grading companion built for the modern classroom. Simply snap a photo of your handwritten math and get instant, human-like feedback.
+            The first AI grading companion built specifically for the Kenyan classroom. Simply snap a photo of your handwritten math and get instant, human-like feedback.
         </p>
 
         <div class="flex flex-col md:flex-row gap-4 justify-center pt-6">
-            <button onclick="location.href='app.html'" class="bg-yellow-400 text-slate-900 px-10 py-5 rounded-3xl font-black text-xl shadow-2xl shadow-yellow-200 active:scale-95 transition">
+            <button onclick="location.href='app.html'" class="bg-yellow-400 text-slate-900 px-10 py-5 rounded-3xl font-black text-xl shadow-2xl shadow-yellow-200 hover:scale-105 transition active:scale-95">
                 STUDENT ENTRY
             </button>
-            <button onclick="location.href='admin.html'" class="bg-slate-900 text-white px-10 py-5 rounded-3xl font-black text-xl shadow-2xl shadow-slate-200 active:scale-95 transition">
+            <button onclick="location.href='admin.html'" class="bg-slate-900 text-white px-10 py-5 rounded-3xl font-black text-xl shadow-2xl shadow-slate-200 hover:scale-105 transition active:scale-95">
                 TEACHER START
             </button>
         </div>
     </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="bg-slate-900 text-white py-20 px-6 rounded-[3.5rem] mx-4 mb-20 shadow-2xl">
+        <div class="max-w-4xl mx-auto space-y-12">
+            <h3 class="text-3xl font-black text-center tracking-tight italic">The MathsPal Magic</h3>
+            
+            <div class="grid md:grid-cols-3 gap-10">
+                <div class="space-y-4">
+                    <div class="text-yellow-400 text-4xl font-black">01.</div>
+                    <h4 class="text-xl font-bold">Teachers Create</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed font-medium">Build a master key in 60 seconds and generate a simple class code for your learners.</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="text-yellow-400 text-4xl font-black">02.</div>
+                    <h4 class="text-xl font-bold">Students Snap</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed font-medium">No login required. Students upload photos of their work directly from their phone camera.</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="text-yellow-400 text-4xl font-black">03.</div>
+                    <h4 class="text-xl font-bold">AI Analytics</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed font-medium">Instant yellow ticks for students and a live performance heatmap for teachers.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARTNERSHIP / INVESTOR CTA -->
+    <div class="text-center pb-20 space-y-4">
+        <p class="text-slate-400 font-bold uppercase text-[9px] tracking-[0.3em]">MathsPal CBE • Built for the Silicon Savannah</p>
+        <button class="text-slate-400 text-xs font-black underline uppercase tracking-widest opacity-50">Partnerships & Licensing</button>
+    </div>
+
 </body>
 </html>
