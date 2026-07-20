@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathsPal - Teacher Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6">
+    <div class="w-full max-w-sm space-y-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Teacher Gateway</p>
+        </div>
+
+        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
+            <input id="email" type="email" placeholder="Email Address" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+            
+            <div class="flex gap-2 pt-2">
+                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase">Login</button>
+                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-sm uppercase">Sign Up</button>
+            </div>
+            <p id="msg" class="text-[10px] text-center font-bold text-slate-400 uppercase tracking-tighter pt-2"></p>
+        </div>
+        <button onclick="location.href='index.html'" class="w-full text-slate-500 font-bold text-xs uppercase">← Back to Home</button>
+    </div>
+
+    <script>
+        const supabaseClient = supabase.createClient('https://ykdehazdwinllvjsmrd.supabase.co', 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn');
+
+        async function handleAuth(type) {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('pass').value;
+            const msg = document.getElementById('msg');
+            msg.innerText = "Please wait...";
+
+            const { data, error } = (type === 'signup') 
+                ? await supabaseClient.auth.signUp({ email, password })
+                : await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                msg.innerText = error.message;
+                msg.classList.add('text-red-500');
+            } else {
+                msg.innerText = "Success! Redirecting...";
+                // Small delay to let Supabase save the session
+                setTimeout(() => { location.href = 'admin.html'; }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>
