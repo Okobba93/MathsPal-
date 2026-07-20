@@ -1,4 +1,12 @@
-<!DOCTYPE html>
+// Add this at the top of your existing <script> inside admin.html
+async function checkUser() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        // Not logged in? Send them to the login page!
+        location.href = 'login.html';
+    }
+}
+checkUser();<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
