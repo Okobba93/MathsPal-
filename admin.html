@@ -1,27 +1,22 @@
-// Add this at the top of your existing <script> inside admin.html
-async function checkUser() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) {
-        // Not logged in? Send them to the login page!
-        location.href = 'login.html';
-    }
-}
-checkUser();<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin - Analytics</title>
+    <title>MathsPal Admin - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Supabase Library First -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-50 font-sans p-4 text-slate-900 pb-20">
-    <div class="max-w-md mx-auto space-y-6">
+    <div id="app-content" class="max-w-md mx-auto space-y-6">
         <div class="flex justify-between items-center">
-            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800">Maths<span class="text-yellow-500 underline text-3xl">Pal</span> Admin</h1>
+            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800">Maths<span class="text-yellow-500 underline">Pal</span> Admin</h1>
             <button id="refBtn" onclick="loadDashboard()" class="bg-white px-4 py-2 rounded-full shadow-md border text-[10px] font-black uppercase tracking-widest active:bg-slate-100 transition">Refresh</button>
         </div>
         
+        <!-- QUIZ CREATOR -->
         <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500">
-            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest">➕ Create New Quiz</summary>
+            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center">➕ Create New Quiz</summary>
             <div class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t">
                 <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold bg-slate-50 focus:border-yellow-400">
                 <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center" placeholder="Ans"></div></div>
@@ -32,152 +27,69 @@ checkUser();<!DOCTYPE html>
         </details>
 
         <h3 class="font-black text-[11px] uppercase tracking-[0.2em] text-slate-400 pl-2">Assignments & Analytics</h3>
-        <div id="assignments-container" class="space-y-6">
-            <p class="text-center text-slate-300 italic py-10 text-xs animate-pulse">Loading dashboard...</p>
-        </div>
+        <div id="assignments-container" class="space-y-6"></div>
+        
+        <button onclick="handleLogout()" class="w-full py-3 text-slate-400 font-bold text-xs uppercase tracking-widest mt-10">Sign Out</button>
     </div>
 
     <script>
+        // 1. Initialize Supabase
         const API_URL = 'https://mathspal-backend.onrender.com';
+        const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
+        const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
+        const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        // --- THE NEW DELETE UI LOGIC ---
-        function showDeleteConfirm(id) {
-            const zone = document.getElementById(`delete-zone-${id}`);
-            zone.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <button onclick="actuallyDelete('${id}')" class="text-red-600 font-black text-[11px] uppercase tracking-widest"><b>Confirm</b></button>
-                    <span class="text-slate-200">|</span>
-                    <button onclick="loadDashboard()" class="text-slate-400 font-black text-[11px] uppercase tracking-widest"><b>Cancel</b></button>
-                </div>
-            `;
-        }
-
-        async function actuallyDelete(id) {
-            const zone = document.getElementById(`delete-zone-${id}`);
-            zone.innerHTML = '<span class="text-[10px] font-bold text-slate-300 animate-pulse uppercase">Deleting...</span>';
-            
-            const fd = new FormData();
-            fd.append('assignment_id', id);
-            
-            try {
-                await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd });
-                loadDashboard();
-            } catch (e) {
-                alert("Error deleting quiz.");
+        // 2. THE SECURITY GUARD (checkUser)
+        async function checkUser() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                // If not logged in, redirect to login page
+                window.location.href = 'login.html';
+            } else {
+                // If logged in, load the data
                 loadDashboard();
             }
         }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        // --- DASHBOARD LOGIC ---
 
         async function loadDashboard() {
             const container = document.getElementById('assignments-container');
             const btn = document.getElementById('refBtn');
             btn.innerText = "WAIT...";
-
             try {
                 const [aRes, sRes] = await Promise.all([
                     fetch(`${API_URL}/assignments`).then(r => r.json()),
                     fetch(`${API_URL}/submissions`).then(r => r.json())
                 ]);
-
                 const assignments = aRes.data || [], allSubs = sRes.data || [];
                 
                 if (assignments.length === 0) {
-                    container.innerHTML = '<p class="text-center text-slate-300 py-10 text-xs">No assignments found.</p>';
-                    btn.innerText = "REFRESH";
-                    return;
-                }
-
-                container.innerHTML = assignments.map(quiz => {
-                    const subs = allSubs.filter(s => s.assignment_id === quiz.id);
-                    let stats = {};
-                    subs.forEach(s => {
-                        if (s.results_json) {
-                            s.results_json.forEach(res => {
-                                if (!stats[res.q]) stats[res.q] = { correct: 0, total: 0 };
-                                stats[res.q].total++;
-                                if (res.status === 'correct') stats[res.q].correct++;
-                            });
-                        }
-                    });
-
-                    const totalQs = Object.keys(quiz.master_key).length;
-                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * totalQs)) * 100) : 0;
-                    
-                    return `
-                    <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden mb-6">
-                        <div class="p-6">
-                            <div class="flex justify-between items-start mb-4">
+                    container.innerHTML = '<p class="text-center text-slate-300 py-10 text-xs">No assignments yet.</p>';
+                } else {
+                    container.innerHTML = assignments.map(quiz => {
+                        const subs = allSubs.filter(s => s.assignment_id === quiz.id);
+                        let stats = {};
+                        subs.forEach(s => {
+                            if (s.results_json) {
+                                s.results_json.forEach(res => {
+                                    if (!stats[res.q]) stats[res.q] = { correct: 0, total: 0 };
+                                    stats[res.q].total++;
+                                    if (res.status === 'correct') stats[res.q].correct++;
+                                });
+                            }
+                        });
+                        const totalQs = Object.keys(quiz.master_key).length;
+                        const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * totalQs)) * 100) : 0;
+                        
+                        return `
+                        <div class="bg-white rounded-[2rem] shadow-xl border overflow-hidden mb-6">
+                            <div class="p-6 flex justify-between items-start">
                                 <div>
-                                    <h4 class="font-black text-slate-800 text-lg leading-tight uppercase tracking-tighter">${quiz.title || 'Untitled'}</h4>
-                                    <span class="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase italic tracking-widest">${quiz.short_code}</span>
-                                </div>
-                                
-                                <!-- THE DELETE ZONE -->
-                                <div id="delete-zone-${quiz.id}">
-                                    <button onclick="showDeleteConfirm('${quiz.id}')" class="text-slate-300 hover:text-red-500 text-[9px] font-black uppercase tracking-widest transition">Delete</button>
-                                </div>
-                            </div>
-                            
-                            <div class="flex justify-between items-end">
-                                <p class="text-[8px] font-black text-slate-300 uppercase tracking-widest">Submissions: ${subs.length}</p>
-                                <div class="text-right">
-                                    <p class="text-[7px] font-black text-slate-300 uppercase leading-none">Avg Score</p>
-                                    <p class="text-xl font-black ${avg < 50 && subs.length > 0 ? 'text-red-500' : 'text-green-600'}">${avg}%</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <details class="border-t border-slate-50 group">
-                            <summary class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition">View Heatmap & Scores</summary>
-                            <div class="p-6 bg-slate-50 space-y-6">
-                                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 text-center">
-                                    <table class="w-full text-left text-[10px]">
-                                        <thead class="bg-slate-100 text-slate-400 font-black uppercase">
-                                            <tr><th class="p-3">Q#</th><th class="p-3 text-center">Correct</th><th class="p-3 text-right">Pass %</th></tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            ${Object.keys(stats).sort((a,b)=>a-b).map(qNum => {
-                                                const s = stats[qNum];
-                                                const rate = Math.round((s.correct / s.total) * 100);
-                                                return `<tr><td class="p-3 font-bold text-slate-500">Q${qNum}</td><td class="p-3 text-center text-green-600 font-bold">${s.correct}/${s.total}</td><td class="p-3 text-right font-black ${rate < 50 ? 'text-red-600' : 'text-slate-900'}">${rate}% ${rate<50 ? '🚩':''}</td></tr>`
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="space-y-2">
-                                    ${subs.map(s => `<div class="flex justify-between p-3 bg-white rounded-xl text-xs shadow-sm border border-slate-100"><b>${s.student_name}</b> <span class="font-black text-slate-400">${s.score}/${totalQs}</span></div>`).join('')}
-                                </div>
-                            </div>
-                        </details>
-                    </div>`;
-                }).join('');
-            } catch (e) { container.innerHTML = "Error loading data."; }
-            btn.innerText = "REFRESH";
-        }
-
-        function addQ() {
-            const list = document.getElementById('q-list');
-            const num = list.children.length + 1;
-            const div = document.createElement('div');
-            div.className = "flex gap-2 mb-2";
-            div.innerHTML = `<input class="w-12 p-3 border rounded-xl q-num text-center font-black text-slate-300" value="${num}" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center" placeholder="Ans">`;
-            list.appendChild(div);
-        }
-
-        async function saveQuiz() {
-            const title = document.getElementById('title').value;
-            if(!title) return alert("Title required!");
-            const answers = {};
-            document.querySelectorAll('.q-ans').forEach((input, i) => { if(input.value) answers[i+1] = input.value; });
-            const fd = new FormData();
-            fd.append('title', title);
-            fd.append('master_key', JSON.stringify(answers));
-            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd }).then(r => r.json());
-            document.getElementById('finalCode').innerText = res.short_code;
-            document.getElementById('codeBox').classList.remove('hidden');
-            loadDashboard();
-        }
-        loadDashboard();
-    </script>
-</body>
-</html>
+                                    <h4 class="font-black text-slate-800 text-lg">${quiz.title || 'Quiz'}</h4>
+                                    <span class="bg-yellow-100 text-yellow-800 text-[
