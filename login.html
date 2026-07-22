@@ -2,15 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal - Login</title>
+    <title>MathsPal - Teacher Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6 text-center">
-    <div class="w-full max-w-sm space-y-8">
+    <div class="w-full max-w-sm space-y-8 animate-in fade-in duration-700">
         <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+        
         <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
-            <input id="email" type="email" placeholder="Email" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
-            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
+            <!-- NEW NAME BOX -->
+            <input id="name" type="text" placeholder="Your Full Name" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+            
+            <input id="email" type="email" placeholder="Email Address" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+            
+            <!-- PASSWORD WITH VIEW TOGGLE -->
+            <div class="relative">
+                <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+                <button onclick="togglePass()" class="absolute right-4 top-4 text-slate-300 font-black text-xs uppercase">View</button>
+            </div>
+
             <div class="flex gap-2 pt-2">
                 <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">LOGIN</button>
                 <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs">SIGN UP</button>
@@ -20,29 +30,35 @@
     </div>
     <script>
         const API_URL = 'https://mathspal-backend.onrender.com';
+        
+        function togglePass() {
+            const p = document.getElementById('pass');
+            p.type = p.type === 'password' ? 'text' : 'password';
+        }
+
         async function handleAuth(type) {
             const email = document.getElementById('email').value;
             const password = document.getElementById('pass').value;
+            const name = document.getElementById('name').value;
             const msg = document.getElementById('msg');
-            msg.innerText = "PROCESSING...";
+            msg.innerText = "WAITING FOR CLOUD...";
 
             const fd = new FormData();
             fd.append('email', email);
             fd.append('password', password);
+            fd.append('name', name);
 
             try {
                 const res = await fetch(`${API_URL}/auth-${type}`, { method: 'POST', body: fd }).then(r => r.json());
                 if (res.status === "success") {
                     if (type === 'login') {
-                        // Store the session "key" so the dashboard knows we are logged in
                         localStorage.setItem('mp_session', res.session);
+                        localStorage.setItem('mp_name', res.name); // Store name
                         window.location.href = 'admin.html';
                     } else {
-                        msg.innerText = "SIGNUP SUCCESS! CHECK EMAIL.";
+                        msg.innerText = "SIGNUP SUCCESS! PLEASE LOGIN.";
                     }
-                } else {
-                    msg.innerText = "ERROR: " + res.error;
-                }
+                } else { msg.innerText = "ERROR: " + res.error; }
             } catch (e) { msg.innerText = "CONNECTION ERROR"; }
         }
     </script>
