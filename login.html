@@ -2,51 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal - Teacher Login</title>
+    <title>MathsPal - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6">
+<body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6 text-center">
     <div class="w-full max-w-sm space-y-8">
-        <div class="text-center">
-            <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
-            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Teacher Gateway</p>
-        </div>
-
+        <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
         <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
-            <input id="email" type="email" placeholder="Email Address" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
-            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
-            
+            <input id="email" type="email" placeholder="Email" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
+            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
             <div class="flex gap-2 pt-2">
-                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase">Login</button>
-                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-sm uppercase">Sign Up</button>
+                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">LOGIN</button>
+                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs">SIGN UP</button>
             </div>
-            <p id="msg" class="text-[10px] text-center font-bold text-slate-400 uppercase tracking-tighter pt-2"></p>
+            <p id="msg" class="text-[10px] font-bold text-slate-400 uppercase pt-2"></p>
         </div>
-        <button onclick="location.href='index.html'" class="w-full text-slate-500 font-bold text-xs uppercase">← Back to Home</button>
     </div>
-
     <script>
-        const supabaseClient = supabase.createClient('https://ykdehazdwinllvjsmrd.supabase.co', 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn');
-
+        const API_URL = 'https://mathspal-backend.onrender.com';
         async function handleAuth(type) {
             const email = document.getElementById('email').value;
             const password = document.getElementById('pass').value;
             const msg = document.getElementById('msg');
-            msg.innerText = "Please wait...";
+            msg.innerText = "PROCESSING...";
 
-            const { data, error } = (type === 'signup') 
-                ? await supabaseClient.auth.signUp({ email, password })
-                : await supabaseClient.auth.signInWithPassword({ email, password });
+            const fd = new FormData();
+            fd.append('email', email);
+            fd.append('password', password);
 
-            if (error) {
-                msg.innerText = error.message;
-                msg.classList.add('text-red-500');
-            } else {
-                msg.innerText = "Success! Redirecting...";
-                // Small delay to let Supabase save the session
-                setTimeout(() => { location.href = 'admin.html'; }, 1500);
-            }
+            try {
+                const res = await fetch(`${API_URL}/auth-${type}`, { method: 'POST', body: fd }).then(r => r.json());
+                if (res.status === "success") {
+                    if (type === 'login') {
+                        // Store the session "key" so the dashboard knows we are logged in
+                        localStorage.setItem('mp_session', res.session);
+                        window.location.href = 'admin.html';
+                    } else {
+                        msg.innerText = "SIGNUP SUCCESS! CHECK EMAIL.";
+                    }
+                } else {
+                    msg.innerText = "ERROR: " + res.error;
+                }
+            } catch (e) { msg.innerText = "CONNECTION ERROR"; }
         }
     </script>
 </body>
