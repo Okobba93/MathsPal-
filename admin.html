@@ -9,28 +9,31 @@
     <div class="max-w-7xl mx-auto space-y-8">
         
         <div class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border">
-            <h1 class="text-3xl font-black italic tracking-tighter">Maths<span class="text-yellow-500 underline">Pal</span> Admin</h1>
-            <div class="text-right"><p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic">---</p></div>
+            <h1 class="text-3xl font-black italic tracking-tighter">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+            <div class="text-right">
+                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic">---</p>
+                <p id="proStatus" class="hidden text-[8px] font-black text-blue-500 uppercase tracking-widest">💎 PRO MEMBER</p>
+            </div>
         </div>
 
-        <!-- GO PRO BANNER -->
-        <div class="bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[2.5rem] shadow-2xl text-white relative overflow-hidden">
+        <!-- GO PRO BANNER (Hidden if user is Pro) -->
+        <div id="pro-card" class="bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[2.5rem] shadow-2xl text-white relative overflow-hidden">
             <div class="relative z-10 space-y-4">
                 <h2 class="text-3xl font-black italic">Go Pro 🚀</h2>
                 <p class="text-sm opacity-80 max-w-sm font-medium">Unlock unlimited quizzes, PDF reports, and advanced AI hints for KSh 500/month.</p>
-                <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition">Upgrade with M-Pesa</button>
+                <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition">Upgrade with M-Pesa</button>
             </div>
             <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full"></div>
         </div>
         
         <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 max-w-md">
-            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest font-sans">➕ Create New Quiz</summary>
+            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest">➕ Create New Quiz</summary>
             <div class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t">
                 <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
                 <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans"></div></div>
                 <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-tighter">+ Add Question</button>
                 <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase">Generate Code</button>
-                <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl">CODE: <span id="finalCode">---</span></div>
+                <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl italic">CODE: <span id="finalCode">---</span></div>
             </div>
         </details>
 
@@ -42,27 +45,30 @@
         const API_URL = 'https://mathspal-backend.onrender.com';
 
         async function triggerPayment() {
-            const phone = prompt("Enter M-Pesa Number (e.g. 254712345678):");
+            const phone = prompt("Enter M-Pesa Number (254...):");
             if (!phone) return;
-            const email = localStorage.getItem('mp_email') || 'teacher@mathspal.com';
-            const name = localStorage.getItem('mp_name') || 'Professor';
-
+            const email = localStorage.getItem('mp_email');
             const fd = new FormData();
             fd.append('phone', phone);
             fd.append('email', email);
-            fd.append('name', name);
 
             try {
                 const res = await fetch(`${API_URL}/request-payment`, { method: 'POST', body: fd }).then(r => r.json());
-                if (res.status === "success") {
-                    alert("STK PUSH SENT! Enter your M-Pesa PIN on your phone to complete the upgrade.");
-                } else { alert("Payment Error: " + res.error); }
-            } catch (e) { alert("Server connection error."); }
+                if (res.status === "success") { alert("STK PUSH SENT! Enter your M-Pesa PIN."); }
+            } catch (e) { alert("Error."); }
         }
 
         async function loadDashboard() {
             const container = document.getElementById('assignments-container');
             const session = localStorage.getItem('mp_session');
+            const isPro = localStorage.getItem('mp_is_pro') === 'true';
+
+            // UI Adjustments for Pro
+            if (isPro) {
+                document.getElementById('pro-card').classList.add('hidden');
+                document.getElementById('proStatus').classList.remove('hidden');
+            }
+
             try {
                 const [aRes, sRes] = await Promise.all([
                     fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${session}` } }).then(r => r.json()),
@@ -71,18 +77,17 @@
                 const assignments = aRes.data || [], allSubs = sRes.data || [];
                 container.innerHTML = assignments.map(quiz => {
                     const subs = allSubs.filter(s => s.assignment_id === quiz.id);
-                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * Object.keys(quiz.master_key).length)) * 100) : 0;
+                    const totalQs = Object.keys(quiz.master_key).length;
+                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * totalQs)) * 100) : 0;
                     return `
-                    <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit">
-                        <div class="p-8 space-y-4">
-                            <h4 class="font-black text-slate-800 text-xl tracking-tighter uppercase leading-none">${quiz.title || 'Quiz'}</h4>
-                            <span class="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase italic">${quiz.short_code}</span>
-                            <div class="flex justify-between items-end pt-4">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${subs.length} Students</div>
-                                <div class="text-right leading-none">
-                                    <p class="text-[8px] font-black text-slate-300 uppercase mb-1">Class Success</p>
-                                    <p class="text-2xl font-black ${avg < 50 && subs.length > 0 ? 'text-red-500' : 'text-green-600'}">${avg}%</p>
-                                </div>
+                    <div class="bg-white rounded-[2.5rem] shadow-xl border overflow-hidden p-8 flex flex-col h-fit">
+                        <h4 class="font-black text-slate-800 text-xl tracking-tighter uppercase leading-none">${quiz.title || 'Quiz'}</h4>
+                        <span class="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase mt-2 w-fit">${quiz.short_code}</span>
+                        <div class="flex justify-between items-end pt-4 mt-auto">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${subs.length} Students</div>
+                            <div class="text-right leading-none">
+                                <p class="text-[8px] font-black text-slate-300 uppercase mb-1">Avg Score</p>
+                                <p class="text-2xl font-black ${avg < 50 && subs.length > 0 ? 'text-red-500' : 'text-green-600'}">${avg}%</p>
                             </div>
                         </div>
                     </div>`;
@@ -94,7 +99,7 @@
             const list = document.getElementById('q-list');
             const num = list.children.length + 1;
             const div = document.createElement('div');
-            div.className = "flex gap-2 mb-2";
+            div.className = "flex gap-2 mt-2";
             div.innerHTML = `<input class="w-12 p-3 border rounded-xl q-num text-center font-black text-slate-300" value="${num}" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans">`;
             list.appendChild(div);
         }
@@ -103,8 +108,6 @@
             const btn = document.getElementById('saveBtn');
             const title = document.getElementById('title').value;
             const session = localStorage.getItem('mp_session');
-            if(!title) return alert("Title required!");
-            btn.innerText = "SAVING...";
             const answers = {};
             document.querySelectorAll('.q-ans').forEach((input, i) => { if(input.value) answers[i+1] = input.value; });
             const fd = new FormData();
@@ -113,7 +116,6 @@
             const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${session}` } }).then(r => r.json());
             document.getElementById('finalCode').innerText = res.short_code;
             document.getElementById('codeBox').classList.remove('hidden');
-            btn.innerText = "GENERATE CODE";
             loadDashboard();
         }
 
