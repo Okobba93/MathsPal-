@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin - Pro Dashboard</title>
+    <title>MathsPal Admin - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
@@ -11,29 +11,32 @@
         
         <!-- TOP NAV -->
         <div class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800 leading-none">Maths<span class="text-yellow-500 underline decoration-wavy decoration-slate-900">Pal</span></h1>
+            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800 leading-none text-2xl md:text-3xl">Maths<span class="text-yellow-500 underline decoration-wavy decoration-slate-900">Pal</span></h1>
             <div class="text-right">
-                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic leading-none text-blue-600">Loading...</p>
-                <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mt-2 border border-blue-200 shadow-sm">💎 PRO MEMBER</div>
+                <p id="teacherNameDisplay" class="font-black text-sm text-slate-400 italic leading-none">Connecting...</p>
+                <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mt-2 border border-blue-200">💎 PRO MEMBER</div>
             </div>
         </div>
 
-        <!-- GO PRO BANNER (Auto-hides when Pro) -->
+        <!-- GO PRO BANNER -->
         <div id="pro-card" class="bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
             <div class="relative z-10 space-y-4">
                 <h2 class="text-4xl font-black italic leading-tight">Unlock MathsPal Pro 🚀</h2>
-                <p class="text-sm opacity-80 max-w-sm font-medium">Unlock unlimited quizzes and automated CBE reporting for KSh 200/month.</p>
-                <button id="mpesaBtn" onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-10 py-5 rounded-[2rem] font-black text-lg shadow-xl active:scale-95 transition">Upgrade with M-Pesa</button>
+                <p class="text-sm opacity-80 max-w-sm font-medium">Get unlimited quizzes and automated CBE reporting for KSh 200/month.</p>
+                <button id="mpesaBtn" onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-10 py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest shadow-xl active:scale-95 transition">Upgrade with M-Pesa</button>
             </div>
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/5 rounded-full"></div>
         </div>
         
         <!-- QUIZ LIST -->
         <div class="space-y-6">
-            <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 pl-4 italic">Active Quizzes</h3>
-            <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 pl-4 italic">Your Classroom</h3>
+            <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                <p class="col-span-full text-center text-slate-300 italic py-20 font-bold uppercase text-xs tracking-widest animate-pulse">Syncing data...</p>
+            </div>
         </div>
 
-        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out of Session</button>
+        <button onclick="handleLogout()" class="w-full py-10 text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out of Session</button>
     </div>
 
     <script>
@@ -42,12 +45,104 @@
         const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        // --- THE ROBUST IDENTITY CHECK ---
         async function syncIdentity() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
-            }
+            try {
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
+                if (!session || sessionError) {
+                    window.location.href = 'login.html';
+                    return;
+                }
 
-            // Fetch profile using the
+                // FETCH PROFILE with a timeout safety
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select('is_pro, full_name')
+                    .eq('id', session.user.id)
+                    .maybeSingle(); // maybeSingle won't crash if row is missing
+                
+                if (data) {
+                    document.getElementById('teacherNameDisplay').innerText = data.full_name || "Professor";
+                    document.getElementById('teacherNameDisplay').classList.remove('text-slate-400');
+                    document.getElementById('teacherNameDisplay').classList.add('text-slate-800');
+                    
+                    if (data.is_pro) {
+                        document.getElementById('proBadge').classList.remove('hidden');
+                        document.getElementById('pro-card').classList.add('hidden');
+                    }
+                } else {
+                    document.getElementById('teacherNameDisplay').innerText = "Profile Setup Needed";
+                }
+                
+                loadDashboard(session.access_token);
+            } catch (err) {
+                console.error("Critical Sync Error:", err);
+                document.getElementById('teacherNameDisplay').innerText = "Connection Error";
+            }
+        }
+
+        async function triggerPayment() {
+            const phone = prompt("Enter M-Pesa Number (254...):");
+            if (!phone) return;
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            const fd = new FormData();
+            fd.append('phone', phone.trim());
+            fd.append('email', session.user.email);
+
+            try {
+                const res = await fetch(`${API_URL}/request-payment`, { method: 'POST', body: fd }).then(r => r.json());
+                if (res.status === "success") {
+                    alert("STK PUSH SENT! Enter your M-Pesa PIN now.");
+                }
+            } catch (e) { alert("Server error. Try again."); }
+        }
+
+        async function loadDashboard(token) {
+            const container = document.getElementById('assignments-container');
+            try {
+                const [aRes, sRes] = await Promise.all([
+                    fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
+                    fetch(`${API_URL}/submissions`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+                ]);
+                const assignments = aRes.data || [], allSubs = sRes.data || [];
+                
+                if (assignments.length === 0) {
+                    container.innerHTML = '<p class="col-span-full text-center text-slate-300 py-20 font-bold italic border-2 border-dashed border-slate-200 rounded-[2.5rem]">No quizzes yet. Create one on desktop!</p>';
+                    return;
+                }
+
+                container.innerHTML = assignments.map(quiz => {
+                    const subs = allSubs.filter(s => s.assignment_id === quiz.id);
+                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * Object.keys(quiz.master_key).length)) * 100) : 0;
+                    return `
+                    <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit">
+                        <div class="p-8 space-y-4">
+                            <h4 class="font-black text-slate-800 text-xl leading-none uppercase">${quiz.title || 'Quiz'}</h4>
+                            <span class="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest uppercase italic">${quiz.short_code}</span>
+                            <div class="flex justify-between items-end pt-4">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${subs.length} Students</div>
+                                <div class="text-right leading-none">
+                                    <p class="text-2xl font-black ${avg < 50 && subs.length > 0 ? 'text-red-500' : 'text-green-600'}">${avg}%</p>
+                                    <p class="text-[7px] font-black text-slate-300 uppercase mt-1">Class Avg</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) { container.innerHTML = "Dashboard paused."; }
+        }
+
+        function handleLogout() { 
+            localStorage.clear(); 
+            supabaseClient.auth.signOut().then(() => {
+                window.location.href = 'login.html'; 
+            });
+        }
+
+        // Start
+        syncIdentity();
+        setInterval(syncIdentity, 10000); 
+    </script>
+</body>
+</html>
