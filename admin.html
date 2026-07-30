@@ -1,80 +1,224 @@
-<!-- Copy and replace your admin.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin</title>
+    <title>MathsPal Admin - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 font-sans p-4 text-slate-900 pb-20">
+<body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed">
+    <!-- LOADING SCREEN -->
     <div id="loading-screen" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
         <div class="text-center">
             <div class="border-4 border-slate-100 border-t-yellow-500 rounded-full w-10 h-10 animate-spin mx-auto mb-4"></div>
-            <p id="debug-status" class="font-black text-[10px] uppercase tracking-widest text-slate-400">Verifying Identity...</p>
+            <p class="font-black text-[10px] uppercase tracking-widest text-slate-400 italic">Securing Session...</p>
         </div>
     </div>
 
-    <div class="max-w-md mx-auto space-y-6">
-        <div class="flex justify-between items-center pt-4">
-            <h1 class="text-3xl font-black italic tracking-tighter">Maths<span class="text-yellow-500 underline">Pal</span></h1>
-            <p id="teacherName" class="font-black text-xs text-slate-400 italic">Professor</p>
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- TOP NAV -->
+        <div class="flex justify-between items-start pt-4">
+            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800 leading-none">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+            <div class="text-right">
+                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic leading-none">Professor</p>
+                <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mt-2 border border-blue-200">💎 PRO MEMBER</div>
+            </div>
         </div>
-        <div id="assignments-container" class="space-y-4"></div>
-        <button onclick="logout()" class="w-full py-10 text-slate-300 font-bold text-[10px] uppercase tracking-[0.3em]">Sign Out</button>
+
+        <div class="flex justify-end">
+             <button id="refBtn" onclick="loadDashboard()" class="bg-white px-4 py-1 rounded-full shadow-sm border text-[9px] font-black uppercase tracking-widest active:bg-slate-100">Refresh Analytics</button>
+        </div>
+
+        <!-- PRO BANNER -->
+        <div id="pro-card" class="hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
+            <div class="relative z-10 space-y-4">
+                <h2 class="text-3xl font-black italic leading-tight">Unlock MathsPal Pro 🚀</h2>
+                <p class="text-sm opacity-80 max-w-sm font-medium">Get unlimited quizzes and automated CBE reporting for just KSh 200/month.</p>
+                <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Upgrade with M-Pesa</button>
+            </div>
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/5 rounded-full"></div>
+        </div>
+        
+        <!-- QUIZ CREATOR -->
+        <div class="max-w-md mx-auto md:mx-0 w-full">
+            <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 group">
+                <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest">➕ Create New Quiz</summary>
+                <div class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t border-slate-100">
+                    <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold bg-slate-50 focus:border-yellow-400">
+                    <div id="q-list" class="max-h-60 overflow-y-auto pr-2 space-y-3">
+                        <div class="flex gap-2 items-center">
+                            <span class="w-6 font-black text-slate-200 text-xs">1.</span>
+                            <input class="flex-1 p-3 border rounded-xl q-ans font-bold" placeholder="Correct Answer">
+                        </div>
+                    </div>
+                    <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-widest">+ Add Question</button>
+                    <button id="saveBtn" onclick="saveQuiz()" class="w-full py-5 bg-slate-900 text-yellow-400 rounded-3xl font-black text-xl shadow-lg active:scale-95 transition">Generate Code</button>
+                    <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center shadow-inner mt-4 font-black text-3xl italic">CODE: <span id="finalCode">---</span></div>
+                </div>
+            </details>
+        </div>
+
+        <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 pl-4 italic">Assignments & Analytics</h3>
+        
+        <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Quizzes with Heatmaps injected here -->
+        </div>
+
+        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out of Session</button>
     </div>
 
     <script>
         const API_URL = 'https://mathspal-backend.onrender.com';
+        const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
+        const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
+        const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        function checkAuth() {
-            // 1. Try to get token from URL (The Loop Breaker)
+        let userToken = "";
+
+        async function checkAuth() {
             const urlParams = new URLSearchParams(window.location.search);
             let token = urlParams.get('token');
             let name = urlParams.get('name');
 
-            // 2. If not in URL, try localStorage
             if (!token) {
-                token = localStorage.getItem('mp_session');
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                token = session?.access_token || localStorage.getItem('mp_session');
                 name = localStorage.getItem('mp_name');
             }
 
-            // 3. If we still have no token, GO TO LOGIN
             if (!token) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            // 4. We are in! Save it for next time
+            // Save for persistence
+            userToken = token;
             localStorage.setItem('mp_session', token);
-            localStorage.setItem('mp_name', name || 'Professor');
-            
+            if(name) localStorage.setItem('mp_name', name);
+
             document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('teacherName').innerText = name || "Professor";
-            loadDashboard(token);
+            document.getElementById('teacherNameDisplay').innerText = localStorage.getItem('mp_name') || "Professor";
+
+            // Check Pro Status
+            const email = localStorage.getItem('mp_email');
+            const { data: profile } = await supabaseClient.from('profiles').select('is_pro').eq('email', email).maybeSingle();
+            if (profile && profile.is_pro) {
+                document.getElementById('proBadge').classList.remove('hidden');
+                document.getElementById('pro-card').classList.add('hidden');
+            } else {
+                document.getElementById('pro-card').classList.remove('hidden');
+            }
+
+            loadDashboard();
         }
 
-        async function loadDashboard(token) {
+        async function loadDashboard() {
             const container = document.getElementById('assignments-container');
+            const btn = document.getElementById('refBtn');
+            btn.innerText = "WAIT...";
             try {
-                const res = await fetch(`${API_URL}/assignments`, { 
-                    headers: { 'Authorization': `Bearer ${token}` } 
-                }).then(r => r.json());
+                const [aRes, sRes] = await Promise.all([
+                    fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json()),
+                    fetch(`${API_URL}/submissions`, { headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json())
+                ]);
+                const assignments = aRes.data || [], allSubs = sRes.data || [];
                 
-                if (res.status === "success") {
-                    container.innerHTML = res.data.map(q => `
-                        <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-50">
-                            <h4 class="font-black text-slate-800 uppercase text-sm">${q.title}</h4>
-                            <span class="bg-yellow-100 text-yellow-800 text-[9px] px-2 py-1 rounded-full font-bold uppercase mt-2 inline-block italic">${q.short_code}</span>
+                container.innerHTML = assignments.map(quiz => {
+                    const subs = allSubs.filter(s => s.assignment_id === quiz.id);
+                    let stats = {};
+                    subs.forEach(s => { if (s.results_json) { s.results_json.forEach(res => {
+                        if (!stats[res.q]) stats[res.q] = { correct: 0, total: 0 };
+                        stats[res.q].total++;
+                        if (res.status === 'correct') stats[res.q].correct++;
+                    }); }});
+                    const totalQs = Object.keys(quiz.master_key).length;
+                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * totalQs)) * 100) : 0;
+                    
+                    return `
+                    <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit">
+                        <div class="p-8 space-y-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-black text-slate-800 text-xl leading-none uppercase">${quiz.title || 'Untitled'}</h4>
+                                    <span class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase italic mt-2 inline-block">${quiz.short_code}</span>
+                                </div>
+                                <button onclick="confirmDelete('${quiz.id}')" id="del-${quiz.id}" class="text-slate-200 hover:text-red-400 font-black text-[9px] uppercase tracking-widest">Delete</button>
+                            </div>
+                            <div class="flex justify-between items-end pt-4 leading-none">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${subs.length} Students</div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-black ${avg < 50 && subs.length > 0 ? 'text-red-500' : 'text-green-600'}">${avg}%</p>
+                                    <p class="text-[7px] font-black text-slate-300 uppercase mt-1">Class Avg</p>
+                                </div>
+                            </div>
                         </div>
-                    `).join('');
-                }
-            } catch (e) { container.innerHTML = "<p class='text-center text-xs text-slate-300'>Dashboard Empty</p>"; }
+                        <details class="border-t border-slate-50 group">
+                            <summary class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition">View Analytics</summary>
+                            <div class="p-6 bg-slate-50 space-y-6">
+                                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
+                                    <table class="w-full text-left text-[10px]">
+                                        <thead class="bg-slate-100 text-slate-400 font-black uppercase"><tr><th class="p-3">Q#</th><th class="p-3 text-center">Correct</th><th class="p-3 text-right">Pass %</th></tr></thead>
+                                        <tbody class="divide-y divide-slate-100 font-bold">
+                                            ${Object.keys(stats).sort((a,b)=>a-b).map(qNum => {
+                                                const s = stats[qNum];
+                                                const rate = Math.round((s.correct / s.total) * 100);
+                                                return `<tr><td class="p-3 text-slate-500">Q${qNum}</td><td class="p-3 text-center text-green-600">${s.correct}/${s.total}</td><td class="p-3 text-right ${rate < 50 ? 'text-red-600' : 'text-slate-900'}">${rate}% ${rate<50 ? '🚩':''}</td></tr>`
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                    ${subs.map(s => `<div class="flex justify-between p-3 bg-white rounded-xl text-[10px] shadow-sm border border-slate-100 uppercase font-black tracking-tight"><span>${s.student_name}</span> <span class="text-slate-400">${s.score}/${totalQs}</span></div>`).join('')}
+                                </div>
+                            </div>
+                        </details>
+                    </div>`;
+                }).join('');
+            } catch (e) { container.innerHTML = "Sync error."; }
+            btn.innerText = "REFRESH";
         }
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
+        function addQ() {
+            const list = document.getElementById('q-list');
+            const num = list.children.length + 1;
+            const div = document.createElement('div');
+            div.className = "flex gap-2 items-center mt-2";
+            div.innerHTML = `<span class="w-6 font-black text-slate-300 text-xs">${num}.</span><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans">`;
+            list.appendChild(div);
         }
+
+        async function saveQuiz() {
+            const btn = document.getElementById('saveBtn');
+            const title = document.getElementById('title').value;
+            if(!title) return alert("Title required!");
+            btn.innerText = "SAVING...";
+            const answers = {};
+            document.querySelectorAll('.q-ans').forEach((input, i) => { if(input.value) answers[i+1] = input.value; });
+            const fd = new FormData();
+            fd.append('title', title);
+            fd.append('master_key', JSON.stringify(answers));
+            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json());
+            document.getElementById('finalCode').innerText = res.short_code;
+            document.getElementById('codeBox').classList.remove('hidden');
+            btn.innerText = "GENERATE CODE";
+            loadDashboard();
+        }
+
+        function confirmDelete(id) {
+            const btn = document.getElementById(`del-${id}`);
+            btn.innerHTML = `<b>CONFIRM?</b>`;
+            btn.className = "text-red-600 font-black text-[9px] uppercase tracking-widest";
+            btn.onclick = () => actuallyDelete(id);
+        }
+
+        async function actuallyDelete(id) {
+            const fd = new FormData();
+            fd.append('assignment_id', id);
+            await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } });
+            loadDashboard();
+        }
+
+        function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
 
         checkAuth();
     </script>
