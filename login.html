@@ -2,89 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal - Teacher Access</title>
+    <title>MathsPal - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6 text-center">
     <div class="w-full max-w-sm space-y-8">
         <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
-        
-        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4 text-left border-b-8 border-yellow-400">
-            <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Full Name (For Signup)</label>
-            <input id="name" type="text" placeholder="e.g. Baraka Okobba" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold mb-2">
-            
-            <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Email Address</label>
-            <input id="email" type="email" placeholder="email@example.com" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold mb-2">
-            
-            <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Password</label>
-            <div class="relative">
-                <input id="pass" type="password" placeholder="••••••••" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
-                <button onclick="togglePass()" class="absolute right-4 top-4 text-slate-300 font-black text-[10px] uppercase">View</button>
-            </div>
-
+        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4 text-left">
+            <input id="email" type="email" placeholder="Email" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
             <div class="flex gap-2 pt-4">
                 <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs active:scale-95 transition">LOGIN</button>
                 <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs active:scale-95 transition">SIGN UP</button>
             </div>
-            <p id="msg" class="text-[10px] font-bold text-center uppercase pt-2 min-h-[20px]"></p>
+            <p id="msg" class="text-[10px] font-bold text-center uppercase pt-2 text-blue-500"></p>
         </div>
-        <button onclick="location.href='index.html'" class="text-slate-500 font-bold text-xs uppercase tracking-widest">← Back to Home</button>
     </div>
-
     <script>
         const API_URL = 'https://mathspal-backend.onrender.com';
-        
-        function togglePass() {
-            const p = document.getElementById('pass');
-            p.type = p.type === 'password' ? 'text' : 'password';
-        }
-
         async function handleAuth(type) {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('pass').value.trim();
-            const name = document.getElementById('name').value.trim();
             const msg = document.getElementById('msg');
-            
-            if (!email || !password) return alert("Email and Password required!");
-            if (type === 'signup' && !name) return alert("Please enter your name to sign up!");
-
-            msg.innerText = "TALKING TO CLOUD...";
-            msg.className = "text-[10px] font-bold text-center uppercase pt-2 text-blue-500";
+            msg.innerText = "Processing...";
 
             const fd = new FormData();
             fd.append('email', email);
             fd.append('password', password);
-            fd.append('name', name);
+            fd.append('name', 'Professor'); // Temporary name for test
 
             try {
-                const response = await fetch(`${API_URL}/auth-${type}`, { 
-                    method: 'POST', 
-                    body: fd 
-                });
-
+                const response = await fetch(`${API_URL}/auth-${type}`, { method: 'POST', body: fd });
                 const res = await response.json();
 
                 if (res.status === "success") {
                     if (type === 'login') {
-                        // --- THE FIX IS HERE ---
+                        // --- THE LOOP BREAKER ---
+                        // We save the token in 3 different ways to ensure the phone doesn't forget it
                         localStorage.setItem('mp_session', res.session);
-                        localStorage.setItem('mp_name', res.name);
-                        localStorage.setItem('mp_email', email); // This lets the dashboard check Pro status
-                        // -----------------------
-                        msg.innerText = "SUCCESS! ENTERING DASHBOARD...";
-                        setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
+                        localStorage.setItem('mp_email', email);
+                        localStorage.setItem('mp_name', res.name || 'Professor');
+                        
+                        msg.innerText = "SUCCESS! ENTERING...";
+                        // Force redirect with a small delay
+                        setTimeout(() => { window.location.href = 'admin.html'; }, 500);
                     } else {
                         msg.innerText = "SIGNUP SUCCESS! NOW CLICK LOGIN.";
-                        msg.className = "text-green-600 text-[10px] font-bold text-center uppercase pt-2";
                     }
                 } else {
-                    msg.innerText = "SERVER ERROR: " + res.error;
-                    msg.className = "text-red-500 text-[10px] font-bold text-center uppercase pt-2";
+                    msg.innerText = "ERROR: " + res.error;
                 }
-            } catch (e) {
-                msg.innerText = "CONNECTION FAILED. IS SERVER AWAKE?";
-                msg.className = "text-red-500 text-[10px] font-bold text-center uppercase pt-2";
-            }
+            } catch (e) { msg.innerText = "CONNECTION FAILED"; }
         }
     </script>
 </body>
