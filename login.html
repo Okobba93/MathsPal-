@@ -1,3 +1,4 @@
+<!-- Copy and replace your login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,14 +9,14 @@
 <body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6 text-center">
     <div class="w-full max-w-sm space-y-8">
         <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
-        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4 text-left">
-            <input id="email" type="email" placeholder="Email" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
-            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
+            <input id="email" type="email" placeholder="Email" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
+            <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
             <div class="flex gap-2 pt-4">
-                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs active:scale-95 transition">LOGIN</button>
-                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs active:scale-95 transition">SIGN UP</button>
+                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase">Login</button>
+                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs uppercase">Sign Up</button>
             </div>
-            <p id="msg" class="text-[10px] font-bold text-center uppercase pt-2 text-blue-500"></p>
+            <p id="msg" class="text-[10px] font-bold text-blue-500 uppercase pt-2"></p>
         </div>
     </div>
     <script>
@@ -29,7 +30,7 @@
             const fd = new FormData();
             fd.append('email', email);
             fd.append('password', password);
-            fd.append('name', 'Professor'); // Temporary name for test
+            fd.append('name', 'Professor');
 
             try {
                 const response = await fetch(`${API_URL}/auth-${type}`, { method: 'POST', body: fd });
@@ -37,21 +38,16 @@
 
                 if (res.status === "success") {
                     if (type === 'login') {
-                        // --- THE LOOP BREAKER ---
-                        // We save the token in 3 different ways to ensure the phone doesn't forget it
+                        // SAVE TO MEMORY AS BACKUP
                         localStorage.setItem('mp_session', res.session);
-                        localStorage.setItem('mp_email', email);
                         localStorage.setItem('mp_name', res.name || 'Professor');
                         
-                        msg.innerText = "SUCCESS! ENTERING...";
-                        // Force redirect with a small delay
-                        setTimeout(() => { window.location.href = 'admin.html'; }, 500);
+                        // THE LOOP BREAKER: Attach the key to the URL!
+                        window.location.href = `admin.html?token=${res.session}&name=${encodeURIComponent(res.name || 'Professor')}`;
                     } else {
-                        msg.innerText = "SIGNUP SUCCESS! NOW CLICK LOGIN.";
+                        msg.innerText = "SIGNUP SUCCESS! CLICK LOGIN.";
                     }
-                } else {
-                    msg.innerText = "ERROR: " + res.error;
-                }
+                } else { msg.innerText = "ERROR: " + res.error; }
             } catch (e) { msg.innerText = "CONNECTION FAILED"; }
         }
     </script>
