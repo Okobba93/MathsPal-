@@ -7,25 +7,30 @@
 </head>
 <body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen p-6 text-center">
     <div class="w-full max-w-sm space-y-8">
-        <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span> <span class="text-xs not-italic bg-white/10 px-2 py-1 rounded ml-1 uppercase">CBE</span></h1>
+        <h1 class="text-4xl font-black italic tracking-tighter">Maths<span class="text-yellow-500 underline">Pal</span> <span class="text-[10px] not-italic bg-white/10 px-2 py-1 rounded ml-1 uppercase tracking-widest">CBE</span></h1>
         
         <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4 text-left border-b-8 border-yellow-400">
-            <input id="name" type="text" placeholder="Full Name (For Signup)" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
-            <input id="email" type="email" placeholder="Email Address" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+            <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Full Name (New Teachers)</label>
+            <input id="name" type="text" placeholder="e.g. Baraka Okobba" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold mb-2 bg-slate-50">
             
-            <!-- PASSWORD WITH TOGGLE -->
+            <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Email Address</label>
+            <input id="email" type="email" placeholder="email@example.com" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold mb-2 bg-slate-50">
+            
+            <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Password</label>
             <div class="relative">
-                <input id="pass" type="password" placeholder="Password" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold">
+                <input id="pass" type="password" placeholder="••••••••" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold bg-slate-50">
                 <button onclick="togglePass()" class="absolute right-4 top-4 text-slate-400 font-black text-[10px] uppercase">View</button>
             </div>
 
-            <div class="flex gap-2 pt-2">
-                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Login</button>
-                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs uppercase shadow-lg">Sign Up</button>
+            <div class="flex gap-2 pt-4">
+                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs active:scale-95 transition">LOGIN</button>
+                <button onclick="handleAuth('signup')" class="flex-1 py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs active:scale-95 transition">SIGN UP</button>
             </div>
-            <p id="msg" class="text-[10px] font-bold text-center uppercase pt-2 text-blue-500"></p>
+            <p id="msg" class="text-[10px] font-bold text-center uppercase pt-2 min-h-[20px] tracking-tighter"></p>
         </div>
+        <button onclick="location.href='index.html'" class="text-slate-500 font-bold text-xs uppercase tracking-widest">← Back to Home</button>
     </div>
+
     <script>
         const API_URL = 'https://mathspal-backend.onrender.com';
         
@@ -39,25 +44,43 @@
             const password = document.getElementById('pass').value.trim();
             const name = document.getElementById('name').value.trim();
             const msg = document.getElementById('msg');
-            if(!email || !password) return alert("Fill all fields");
+            
+            if (!email || !password) return alert("Email and Password required!");
+            if (type === 'signup' && !name) return alert("Please enter your name to sign up!");
 
-            msg.innerText = "Connecting...";
+            msg.innerText = "TALKING TO CLOUD...";
+            msg.className = "text-[10px] font-bold text-center uppercase pt-2 text-blue-500";
+
             const fd = new FormData();
             fd.append('email', email);
             fd.append('password', password);
             fd.append('name', name);
 
             try {
-                const res = await fetch(`${API_URL}/auth-${type}`, { method: 'POST', body: fd }).then(r => r.json());
+                const response = await fetch(`${API_URL}/auth-${type}`, { method: 'POST', body: fd });
+                const res = await response.json();
+
                 if (res.status === "success") {
                     if (type === 'login') {
+                        // SAVE TO PERMANENT STORAGE
                         localStorage.setItem('mp_session', res.session);
-                        localStorage.setItem('mp_email', email);
                         localStorage.setItem('mp_name', res.name);
-                        window.location.href = 'admin.html';
-                    } else { msg.innerText = "Signup Successful! Click Login."; }
-                } else { msg.innerText = "Error: " + res.error; }
-            } catch (e) { msg.innerText = "Network Error"; }
+                        localStorage.setItem('mp_email', email); // This allows the Diamond Badge to work
+                        
+                        msg.innerText = "SUCCESS! ENTERING...";
+                        setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
+                    } else {
+                        msg.innerText = "SIGNUP SUCCESS! NOW CLICK LOGIN.";
+                        msg.className = "text-green-600 text-[10px] font-bold text-center uppercase pt-2";
+                    }
+                } else {
+                    msg.innerText = "ERROR: " + res.error;
+                    msg.className = "text-red-500 text-[10px] font-bold text-center uppercase pt-2";
+                }
+            } catch (e) {
+                msg.innerText = "CONNECTION FAILED. TRY AGAIN.";
+                msg.className = "text-red-500 text-[10px] font-bold text-center uppercase pt-2";
+            }
         }
     </script>
 </body>
