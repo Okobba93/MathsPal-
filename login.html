@@ -9,7 +9,7 @@
     <div class="w-full max-w-sm space-y-8">
         <h1 class="text-4xl font-black italic">Maths<span class="text-yellow-500 underline">Pal</span></h1>
         
-        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4 text-left">
+        <div class="bg-white text-slate-900 p-8 rounded-[2.5rem] shadow-2xl space-y-4 text-left border-b-8 border-yellow-400">
             <label class="text-[10px] font-black uppercase text-slate-400 pl-2">Full Name (For Signup)</label>
             <input id="name" type="text" placeholder="e.g. Baraka Okobba" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none focus:border-yellow-400 font-bold mb-2">
             
@@ -66,8 +66,11 @@
 
                 if (res.status === "success") {
                     if (type === 'login') {
+                        // --- THE FIX IS HERE ---
                         localStorage.setItem('mp_session', res.session);
                         localStorage.setItem('mp_name', res.name);
+                        localStorage.setItem('mp_email', email); // This lets the dashboard check Pro status
+                        // -----------------------
                         msg.innerText = "SUCCESS! ENTERING DASHBOARD...";
                         setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
                     } else {
