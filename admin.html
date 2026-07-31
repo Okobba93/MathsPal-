@@ -2,81 +2,121 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin</title>
+    <title>MathsPal Admin - Pro Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 font-sans p-4 text-slate-900 pb-20 leading-relaxed">
-    <div class="max-w-md mx-auto space-y-6">
-        
-        <!-- HEADER -->
+<body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed">
+    <div id="loading-screen" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
+        <div class="border-4 border-slate-100 border-t-yellow-500 rounded-full w-12 h-12 animate-spin"></div>
+        <p class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]">Syncing Identity...</p>
+    </div>
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- TOP NAV -->
         <div class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+            <h1 class="text-3xl font-black italic tracking-tighter text-slate-800 leading-none">Maths<span class="text-yellow-500 underline decoration-wavy decoration-slate-900">Pal</span></h1>
             <div class="text-right">
-                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic">Professor</p>
-                <div id="proBadge" class="hidden bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mt-1 border border-blue-200 animate-pulse">💎 PRO MEMBER</div>
+                <p id="teacherNameDisplay" class="font-black text-sm text-slate-800 italic leading-none">Professor</p>
+                <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mt-2 border border-blue-200">💎 PRO MEMBER</div>
             </div>
         </div>
 
-        <!-- GO PRO BANNER (Auto-hides) -->
-        <div id="pro-card" class="bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
+        <!-- GO PRO BANNER -->
+        <div id="pro-card" class="hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
             <div class="relative z-10 space-y-4">
-                <h2 class="text-3xl font-black italic leading-tight">Go Pro 🚀</h2>
-                <p class="text-sm opacity-80 font-medium">Unlock unlimited analytics for KSh 200/month.</p>
-                <button id="mpesaBtn" onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition">Upgrade with M-Pesa</button>
+                <h2 class="text-3xl font-black italic leading-tight">Unlock MathsPal Pro 🚀</h2>
+                <p class="text-sm opacity-80 max-w-sm font-medium">Unlock unlimited quizzes and automated CBE reporting for KSh 200/month.</p>
+                <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-10 py-5 rounded-[2rem] font-black text-lg shadow-xl active:scale-95 transition">Upgrade with M-Pesa</button>
             </div>
-            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full"></div>
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/5 rounded-full"></div>
+        </div>
+        
+        <div class="space-y-6">
+            <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 pl-4 italic">Active Quizzes</h3>
+            <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20"></div>
         </div>
 
-        <div id="assignments-container" class="space-y-6"></div>
-        <button onclick="localStorage.clear(); window.location.href='login.html'" class="w-full py-10 text-slate-300 font-black text-[10px] uppercase tracking-[0.5em]">Sign Out</button>
+        <button onclick="handleLogout()" class="w-full py-10 text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out of Session</button>
     </div>
 
     <script>
+        const API_URL = 'https://mathspal-backend.onrender.com';
         const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
         const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        // THE FIX: Continuously check the database for the Diamond
-        async function fetchProStatus() {
-            const email = localStorage.getItem('mp_email');
-            if (!email) return;
-
-            const { data } = await supabaseClient.from('profiles').select('is_pro, full_name').eq('email', email).single();
+        // --- THE ROBUST IDENTITY ENGINE ---
+        async function syncIdentity() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
             
-            if (data && data.is_pro) {
-                document.getElementById('proBadge').classList.remove('hidden');
-                document.getElementById('pro-card').classList.add('hidden');
-                document.getElementById('teacherNameDisplay').innerText = data.full_name;
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
             }
+
+            // Fetch profile using the Internal User ID (The most secure way)
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('is_pro, full_name')
+                .eq('id', session.user.id)
+                .maybeSingle();
+            
+            if (profile) {
+                document.getElementById('teacherNameDisplay').innerText = profile.full_name || "Professor";
+                if (profile.is_pro) {
+                    document.getElementById('proBadge').classList.remove('hidden');
+                    document.getElementById('pro-card').classList.add('hidden');
+                } else {
+                    document.getElementById('pro-card').classList.remove('hidden');
+                }
+            }
+
+            document.getElementById('loading-screen').classList.add('hidden');
+            loadDashboard(session.access_token);
         }
 
         async function triggerPayment() {
             const phone = prompt("Enter M-Pesa Number (254...):");
             if (!phone) return;
-            const res = await fetch('https://mathspal-backend.onrender.com/request-payment', {
-                method: 'POST',
-                body: new URLSearchParams({'phone': phone, 'email': localStorage.getItem('mp_email')})
-            }).then(r => r.json());
-            if (res.status === "success") alert("PIN Prompt Sent! Dashboard will unlock once paid.");
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const fd = new FormData();
+            fd.append('phone', phone.trim());
+            fd.append('email', session.user.email);
+            try {
+                const res = await fetch(`${API_URL}/request-payment`, { method: 'POST', body: fd }).then(r => r.json());
+                if (res.status === "success") alert("PIN Prompt Sent! Dashboard will unlock automatically.");
+            } catch (e) { alert("Error."); }
         }
 
-        async function loadDashboard() {
+        async function loadDashboard(token) {
             const container = document.getElementById('assignments-container');
-            const token = localStorage.getItem('mp_session');
             try {
-                const res = await fetch('https://mathspal-backend.onrender.com/assignments', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json());
-                container.innerHTML = (res.data || []).map(q => `<div class="bg-white p-8 rounded-[2.5rem] shadow-lg border border-slate-100 flex flex-col gap-2">
-                    <h4 class="font-black text-slate-800 text-lg uppercase">${q.title}</h4>
-                    <span class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase italic w-fit">${q.short_code}</span>
-                </div>`).join('');
+                const [aRes, sRes] = await Promise.all([
+                    fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
+                    fetch(`${API_URL}/submissions`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+                ]);
+                container.innerHTML = (aRes.data || []).map(quiz => {
+                    const subs = (sRes.data || []).filter(s => s.assignment_id === quiz.id);
+                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * Object.keys(quiz.master_key).length)) * 100) : 0;
+                    return `
+                    <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit p-8 space-y-4">
+                        <h4 class="font-black text-slate-800 text-xl uppercase leading-none">${quiz.title}</h4>
+                        <span class="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase italic w-fit">${quiz.short_code}</span>
+                        <div class="flex justify-between items-end mt-4">
+                            <p class="text-2xl font-black ${avg < 50 ? 'text-red-500' : 'text-green-600'}">${avg}%</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${subs.length} Students</p>
+                        </div>
+                    </div>`;
+                }).join('');
             } catch (e) { console.log(e); }
         }
 
-        if (!localStorage.getItem('mp_session')) window.location.href = 'login.html';
-        fetchProStatus();
-        loadDashboard();
-        setInterval(fetchProStatus, 5000); // Check for Diamond every 5 seconds
+        function handleLogout() { localStorage.clear(); supabaseClient.auth.signOut().then(() => { window.location.href = 'login.html'; }); }
+
+        // Start
+        syncIdentity();
+        setInterval(syncIdentity, 7000); // Check database every 7 seconds for the Diamond
     </script>
 </body>
 </html>
