@@ -2,48 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin - Dash</title>
+    <title>MathsPal Admin - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed">
+<body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed text-center">
     <div id="loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
         <div class="border-4 border-slate-100 border-t-yellow-500 rounded-full w-12 h-12 animate-spin"></div>
-        <p class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">Syncing Identity...</p>
+        <p class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-widest italic">Securing Session...</p>
     </div>
 
     <div class="max-w-7xl mx-auto space-y-8">
         <div class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h1 class="text-2xl font-black italic tracking-tighter text-slate-800">Maths<span class="text-yellow-500 underline">Pal</span></h1>
+            <h1 class="text-2xl font-black italic tracking-tighter text-slate-800 leading-none">Maths<span class="text-yellow-500 underline">Pal</span></h1>
             <div class="text-right">
-                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic leading-none">---</p>
+                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic">Professor</p>
                 <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase mt-1">💎 PRO MEMBER</div>
             </div>
         </div>
 
         <div id="pro-card" class="hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
             <div class="relative z-10 space-y-4">
-                <h2 class="text-3xl font-black italic text-white leading-tight">Unlock Pro 🚀</h2>
+                <h2 class="text-3xl font-black italic leading-tight">Unlock Pro 🚀</h2>
                 <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase shadow-xl">Upgrade with M-Pesa</button>
             </div>
         </div>
         
-        <div class="max-w-md mx-auto md:mx-0">
-            <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 group">
-                <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest list-none">➕ Create New Quiz</summary>
-                <div class="bg-white p-6 space-y-4 rounded-b-3xl border-t text-center">
-                    <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
-                    <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num text-center font-black text-slate-300" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans"></div></div>
-                    <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-tighter">+ Add Question</button>
-                    <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase">Generate Code</button>
-                    <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl">CODE: <span id="finalCode">---</span></div>
-                </div>
-            </details>
-        </div>
+        <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 max-w-md mx-auto group">
+            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest list-none">➕ Create New Quiz</summary>
+            <div class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t border-slate-100">
+                <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold bg-slate-50 focus:border-yellow-400">
+                <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans"></div></div>
+                <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-tighter">+ Add Question</button>
+                <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase tracking-widest">Generate Code</button>
+                <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl italic text-slate-900 text-center">CODE: <span id="finalCode">---</span></div>
+            </div>
+        </details>
 
-        <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20"></div>
+        <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 italic">Assignments & Analytics</h3>
+        <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
 
-        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out</button>
+        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out</button>
     </div>
 
     <script>
@@ -53,23 +52,42 @@
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
         let userToken = "";
 
-        async function init() {
+        async function checkAuth() {
+            // Priority 1: Check the URL for token (from login)
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash);
             let token = params.get('token') || localStorage.getItem('mp_session');
+            let name = params.get('name') || localStorage.getItem('mp_name');
+
+            if (!token) {
+                // Priority 2: Check Supabase session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                token = session?.access_token;
+            }
+
             if (!token) { window.location.href = 'login.html'; return; }
+
+            // Success: Update memory and UI
             userToken = token;
             localStorage.setItem('mp_session', token);
-            document.getElementById('loader').classList.add('hidden');
-            const { data: { user } } = await supabaseClient.auth.getUser(token);
-            if (user) {
-                const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).maybeSingle();
-                if (profile) {
-                    document.getElementById('teacherNameDisplay').innerText = profile.full_name;
-                    if (profile.is_pro) { document.getElementById('proBadge').classList.remove('hidden'); document.getElementById('pro-card').classList.add('hidden'); }
-                    else { document.getElementById('pro-card').classList.remove('hidden'); }
-                }
+            if(name) {
+                localStorage.setItem('mp_name', name);
+                document.getElementById('teacherNameDisplay').innerText = name;
             }
+
+            document.getElementById('loader').classList.add('hidden');
+
+            // Double check Database for Pro and Full Name
+            const email = localStorage.getItem('mp_email');
+            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('email', email).maybeSingle();
+            if (profile) {
+                document.getElementById('teacherNameDisplay').innerText = profile.full_name;
+                if (profile.is_pro) {
+                    document.getElementById('proBadge').classList.remove('hidden');
+                    document.getElementById('pro-card').classList.add('hidden');
+                } else { document.getElementById('pro-card').classList.remove('hidden'); }
+            }
+
             loadDashboard();
         }
 
@@ -94,9 +112,9 @@
                     <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit">
                         <div class="p-8 space-y-4">
                             <div class="flex justify-between items-start">
-                                <div><h4 class="font-black text-slate-800 text-lg uppercase leading-tight">${quiz.title}</h4>
-                                <span class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase mt-2 inline-block">${quiz.short_code}</span></div>
-                                <div id="del-${quiz.id}"><button onclick="confirmDelete('${quiz.id}')" class="text-slate-200 hover:text-red-400 font-black text-[9px] uppercase tracking-widest">Delete</button></div>
+                                <div><h4 class="font-black text-slate-800 text-xl leading-none uppercase text-left">${quiz.title}</h4>
+                                <span class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase italic mt-2 inline-block">${quiz.short_code}</span></div>
+                                <div id="del-zone-${quiz.id}"><button onclick="confirmDelete('${quiz.id}')" class="text-slate-200 hover:text-red-400 font-black text-[9px] uppercase tracking-widest">Delete</button></div>
                             </div>
                             <div class="flex justify-between items-end border-t pt-4 leading-none">
                                 <div class="text-[20px] font-black ${avg < 50 ? 'text-red-500' : 'text-green-600'}">${avg}% <span class="text-[8px] text-slate-300 block uppercase">Avg</span></div>
@@ -104,7 +122,7 @@
                             </div>
                         </div>
                         <details class="border-t border-slate-50 group">
-                            <summary class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition">View Heatmap & Scores</summary>
+                            <summary class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition text-center">View Analytics</summary>
                             <div class="p-6 bg-slate-50 space-y-6">
                                 <table class="w-full text-left text-[10px]">
                                     <thead class="text-slate-400 uppercase font-black"><tr><th>Q#</th><th class="text-center">✅</th><th class="text-right">Pass %</th></tr></thead>
@@ -113,7 +131,7 @@
                                         return `<tr><td class="py-2">Q${qNum}</td><td class="text-center text-green-600 font-bold">${s.correct}/${s.total}</td><td class="text-right ${rate<50?'text-red-500':'text-slate-900'} font-black">${rate}% ${rate<50?'🚩':''}</td></tr>`
                                     }).join('')}</tbody>
                                 </table>
-                                <div class="space-y-2">${subs.map(s => `<div class="flex justify-between p-3 bg-white rounded-xl text-[10px] shadow-sm border font-black uppercase"><span>${s.student_name}</span> <span class="text-slate-400 font-mono">${s.score}/${totalQs}</span></div>`).join('')}</div>
+                                <div class="space-y-2">${subs.map(s => `<div class="flex justify-between p-3 bg-white rounded-xl text-[10px] shadow-sm border font-black uppercase text-left"><span>${s.student_name}</span> <span class="text-slate-400 font-mono text-right">${s.score}/${totalQs}</span></div>`).join('')}</div>
                             </div>
                         </details>
                     </div>`;
@@ -121,6 +139,21 @@
             } catch (e) { container.innerHTML = "Dashboard error."; }
         }
 
+        function confirmDelete(id) {
+            const zone = document.getElementById(`del-zone-${id}`);
+            zone.innerHTML = `<div class="flex gap-2"><button onclick="actuallyDelete('${id}')" class="text-red-600 font-black text-[9px]"><b>Confirm</b></button><button onclick="loadDashboard()" class="text-slate-300 font-bold text-[9px]"><b>Cancel</b></button></div>`;
+        }
+
+        async function actuallyDelete(id) {
+            const fd = new FormData(); fd.append('assignment_id', id);
+            try {
+                await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } });
+                loadDashboard();
+            } catch (e) { alert("Delete failed."); }
+        }
+
+        function handleLogout() { localStorage.clear(); supabaseClient.auth.signOut().then(() => { window.location.href = 'login.html'; }); }
+        
         function addQ() {
             const list = document.getElementById('q-list');
             const num = list.children.length + 1;
@@ -131,30 +164,21 @@
         }
 
         async function saveQuiz() {
+            const btn = document.getElementById('saveBtn');
             const title = document.getElementById('title').value;
             if(!title) return alert("Title required!");
+            btn.innerText = "SAVING...";
             const answers = {};
             document.querySelectorAll('.q-ans').forEach((input, i) => { if(input.value) answers[i+1] = input.value; });
             const fd = new FormData(); fd.append('title', title); fd.append('master_key', JSON.stringify(answers));
             const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json());
             document.getElementById('finalCode').innerText = res.short_code;
             document.getElementById('codeBox').classList.remove('hidden');
+            btn.innerText = "GENERATE CODE";
             loadDashboard();
         }
 
-        function confirmDelete(id) {
-            document.getElementById(`del-${id}`).innerHTML = `<div class="flex gap-2"><button onclick="actuallyDelete('${id}')" class="text-red-600 font-black text-[9px]"><b>Confirm</b></button><button onclick="loadDashboard()" class="text-slate-300 font-bold text-[9px]">Cancel</button></div>`;
-        }
-
-        async function actuallyDelete(id) {
-            const fd = new FormData(); fd.append('assignment_id', id);
-            await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } });
-            loadDashboard();
-        }
-
-        function handleLogout() { localStorage.clear(); supabaseClient.auth.signOut().then(() => { window.location.href = 'login.html'; }); }
-
-        init();
+        checkAuth();
     </script>
 </body>
 </html>
