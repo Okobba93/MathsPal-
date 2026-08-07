@@ -2,49 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathsPal Admin - Pro Dashboard</title>
+    <title>MathsPal Admin - Dash</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed">
     <div id="loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
         <div class="border-4 border-slate-100 border-t-yellow-500 rounded-full w-12 h-12 animate-spin"></div>
-        <p class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-widest italic">Securing Session...</p>
+        <p class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">Syncing Identity...</p>
     </div>
 
     <div class="max-w-7xl mx-auto space-y-8">
         <div class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h1 class="text-2xl md:text-3xl font-black italic tracking-tighter text-slate-800">Maths<span class="text-yellow-500 underline">Pal</span> <span class="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded not-italic tracking-widest ml-1">CBE</span></h1>
+            <h1 class="text-2xl font-black italic tracking-tighter text-slate-800">Maths<span class="text-yellow-500 underline">Pal</span></h1>
             <div class="text-right">
-                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic">Professor</p>
+                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic leading-none">---</p>
                 <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase mt-1">💎 PRO MEMBER</div>
             </div>
         </div>
 
         <div id="pro-card" class="hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
             <div class="relative z-10 space-y-4">
-                <h2 class="text-3xl font-black italic leading-tight">Unlock Pro 🚀</h2>
-                <p class="text-sm opacity-80 max-w-sm font-medium">Unlock unlimited analytics for KSh 200/month.</p>
+                <h2 class="text-3xl font-black italic text-white leading-tight">Unlock Pro 🚀</h2>
                 <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase shadow-xl">Upgrade with M-Pesa</button>
             </div>
-            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/5 rounded-full"></div>
         </div>
         
-        <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 max-w-md group">
-            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest list-none">➕ Create New Quiz</summary>
-            <div class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t">
-                <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold bg-slate-50 focus:border-yellow-400">
-                <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans"></div></div>
-                <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-tighter">+ Add Question</button>
-                <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase tracking-widest">Generate Code</button>
-                <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl italic text-slate-900">CODE: <span id="finalCode">---</span></div>
-            </div>
-        </details>
+        <div class="max-w-md mx-auto md:mx-0">
+            <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 group">
+                <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest list-none">➕ Create New Quiz</summary>
+                <div class="bg-white p-6 space-y-4 rounded-b-3xl border-t text-center">
+                    <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold">
+                    <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num text-center font-black text-slate-300" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans"></div></div>
+                    <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-tighter">+ Add Question</button>
+                    <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase">Generate Code</button>
+                    <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl">CODE: <span id="finalCode">---</span></div>
+                </div>
+            </details>
+        </div>
 
-        <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 pl-4 italic">Class Performance</h3>
-        <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
-        
-        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out</button>
+        <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20"></div>
+
+        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out</button>
     </div>
 
     <script>
@@ -52,79 +51,70 @@
         const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
         const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
-        let currentToken = "";
+        let userToken = "";
 
         async function init() {
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash);
             let token = params.get('token') || localStorage.getItem('mp_session');
-            
-            if (!token) {
-                const { data } = await supabaseClient.auth.getSession();
-                token = data.session?.access_token;
-            }
-
             if (!token) { window.location.href = 'login.html'; return; }
-
-            currentToken = token;
+            userToken = token;
             localStorage.setItem('mp_session', token);
             document.getElementById('loader').classList.add('hidden');
-
             const { data: { user } } = await supabaseClient.auth.getUser(token);
             if (user) {
                 const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).maybeSingle();
                 if (profile) {
                     document.getElementById('teacherNameDisplay').innerText = profile.full_name;
-                    if (profile.is_pro) {
-                        document.getElementById('proBadge').classList.remove('hidden');
-                        document.getElementById('pro-card').classList.add('hidden');
-                    } else { document.getElementById('pro-card').classList.remove('hidden'); }
+                    if (profile.is_pro) { document.getElementById('proBadge').classList.remove('hidden'); document.getElementById('pro-card').classList.add('hidden'); }
+                    else { document.getElementById('pro-card').classList.remove('hidden'); }
                 }
             }
-            loadDashboard(token);
+            loadDashboard();
         }
 
-        async function loadDashboard(token) {
+        async function loadDashboard() {
             const container = document.getElementById('assignments-container');
             try {
                 const [aRes, sRes] = await Promise.all([
-                    fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
-                    fetch(`${API_URL}/submissions`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+                    fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json()),
+                    fetch(`${API_URL}/submissions`, { headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json())
                 ]);
                 const assignments = aRes.data || [], allSubs = sRes.data || [];
                 container.innerHTML = assignments.map(quiz => {
                     const subs = allSubs.filter(s => s.assignment_id === quiz.id);
-                    // Analytics Heatmap Logic
                     let stats = {};
                     subs.forEach(s => { if (s.results_json) { s.results_json.forEach(res => {
                         if (!stats[res.q]) stats[res.q] = { correct: 0, total: 0 };
-                        stats[res.q].total++;
-                        if (res.status === 'correct') stats[res.q].correct++;
+                        stats[res.q].total++; if (res.status === 'correct') stats[res.q].correct++;
                     }); }});
                     const totalQs = Object.keys(quiz.master_key).length;
                     const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * totalQs)) * 100) : 0;
-
-                    return `<div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden p-8 flex flex-col h-fit gap-4">
-                        <div class="flex justify-between items-start">
-                            <div><h4 class="font-black text-slate-800 text-xl uppercase leading-none">${quiz.title}</h4>
-                            <span class="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded uppercase mt-2 inline-block">${quiz.short_code}</span></div>
-                            <button onclick="confirmDelete('${quiz.id}')" id="del-${quiz.id}" class="text-slate-200 text-[9px] font-black uppercase">Delete</button>
+                    return `
+                    <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit">
+                        <div class="p-8 space-y-4">
+                            <div class="flex justify-between items-start">
+                                <div><h4 class="font-black text-slate-800 text-lg uppercase leading-tight">${quiz.title}</h4>
+                                <span class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase mt-2 inline-block">${quiz.short_code}</span></div>
+                                <div id="del-${quiz.id}"><button onclick="confirmDelete('${quiz.id}')" class="text-slate-200 hover:text-red-400 font-black text-[9px] uppercase tracking-widest">Delete</button></div>
+                            </div>
+                            <div class="flex justify-between items-end border-t pt-4 leading-none">
+                                <div class="text-[20px] font-black ${avg < 50 ? 'text-red-500' : 'text-green-600'}">${avg}% <span class="text-[8px] text-slate-300 block uppercase">Avg</span></div>
+                                <div class="text-right text-[10px] font-bold text-slate-400 uppercase">${subs.length} Subs</div>
+                            </div>
                         </div>
-                        <div class="flex justify-between items-end border-t pt-4">
-                            <div class="text-[20px] font-black ${avg < 50 ? 'text-red-500' : 'text-green-600'}">${avg}% <span class="text-[8px] text-slate-300 block uppercase">Class Avg</span></div>
-                            <div class="text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">${subs.length} Subs</div>
-                        </div>
-                        <details class="group mt-2">
-                           <summary class="list-none text-center text-blue-500 text-[10px] font-black cursor-pointer uppercase">View Details</summary>
-                           <div class="pt-4 space-y-4">
+                        <details class="border-t border-slate-50 group">
+                            <summary class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition">View Heatmap & Scores</summary>
+                            <div class="p-6 bg-slate-50 space-y-6">
                                 <table class="w-full text-left text-[10px]">
                                     <thead class="text-slate-400 uppercase font-black"><tr><th>Q#</th><th class="text-center">✅</th><th class="text-right">Pass %</th></tr></thead>
-                                    <tbody class="divide-y divide-slate-50">${Object.keys(stats).sort((a,b)=>a-b).map(qNum => {
+                                    <tbody class="divide-y divide-slate-100">${Object.keys(stats).sort((a,b)=>a-b).map(qNum => {
                                         const s = stats[qNum]; const rate = Math.round((s.correct / s.total) * 100);
-                                        return `<tr><td class="py-2">Q${qNum}</td><td class="text-center text-green-600">${s.correct}/${s.total}</td><td class="text-right ${rate<50?'text-red-500':'text-slate-900'} font-black">${rate}% ${rate<50?'🚩':''}</td></tr>`
+                                        return `<tr><td class="py-2">Q${qNum}</td><td class="text-center text-green-600 font-bold">${s.correct}/${s.total}</td><td class="text-right ${rate<50?'text-red-500':'text-slate-900'} font-black">${rate}% ${rate<50?'🚩':''}</td></tr>`
                                     }).join('')}</tbody>
                                 </table>
-                           </div>
+                                <div class="space-y-2">${subs.map(s => `<div class="flex justify-between p-3 bg-white rounded-xl text-[10px] shadow-sm border font-black uppercase"><span>${s.student_name}</span> <span class="text-slate-400 font-mono">${s.score}/${totalQs}</span></div>`).join('')}</div>
+                            </div>
                         </details>
                     </div>`;
                 }).join('');
@@ -141,37 +131,28 @@
         }
 
         async function saveQuiz() {
-            const btn = document.getElementById('saveBtn');
             const title = document.getElementById('title').value;
             if(!title) return alert("Title required!");
-            btn.innerText = "SAVING...";
             const answers = {};
             document.querySelectorAll('.q-ans').forEach((input, i) => { if(input.value) answers[i+1] = input.value; });
-            const fd = new FormData();
-            fd.append('title', title);
-            fd.append('master_key', JSON.stringify(answers));
-            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${currentToken}` } }).then(r => r.json());
+            const fd = new FormData(); fd.append('title', title); fd.append('master_key', JSON.stringify(answers));
+            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json());
             document.getElementById('finalCode').innerText = res.short_code;
             document.getElementById('codeBox').classList.remove('hidden');
-            btn.innerText = "GENERATE CODE";
-            loadDashboard(currentToken);
+            loadDashboard();
         }
 
         function confirmDelete(id) {
-            const btn = document.getElementById(`del-${id}`);
-            btn.innerHTML = `<b>CONFIRM?</b>`;
-            btn.className = "text-red-600 font-black text-[9px] uppercase";
-            btn.onclick = () => actuallyDelete(id);
+            document.getElementById(`del-${id}`).innerHTML = `<div class="flex gap-2"><button onclick="actuallyDelete('${id}')" class="text-red-600 font-black text-[9px]"><b>Confirm</b></button><button onclick="loadDashboard()" class="text-slate-300 font-bold text-[9px]">Cancel</button></div>`;
         }
 
         async function actuallyDelete(id) {
-            const fd = new FormData();
-            fd.append('assignment_id', id);
-            await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${currentToken}` } });
-            loadDashboard(currentToken);
+            const fd = new FormData(); fd.append('assignment_id', id);
+            await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } });
+            loadDashboard();
         }
 
-        function handleLogout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function handleLogout() { localStorage.clear(); supabaseClient.auth.signOut().then(() => { window.location.href = 'login.html'; }); }
 
         init();
     </script>
