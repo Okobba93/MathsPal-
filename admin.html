@@ -1,184 +1,2018 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>MathsPal Admin - Dashboard</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .fade-in {
+            animation: fadeIn .25s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed text-center">
-    <div id="loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
-        <div class="border-4 border-slate-100 border-t-yellow-500 rounded-full w-12 h-12 animate-spin"></div>
-        <p class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-widest italic">Securing Session...</p>
+
+<body class="bg-slate-50 font-sans p-4 md:p-10 text-slate-900 pb-20 leading-relaxed">
+
+    <!-- =========================================================
+         LOADER
+    ========================================================== -->
+    <div
+        id="loader"
+        class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center"
+    >
+        <div class="border-4 border-slate-100 border-t-yellow-500 rounded-full w-12 h-12 spin"></div>
+
+        <p
+            id="loaderText"
+            class="mt-4 font-black text-[10px] text-slate-400 uppercase tracking-widest italic"
+        >
+            Securing Session...
+        </p>
     </div>
 
+
+    <!-- =========================================================
+         MAIN
+    ========================================================== -->
     <div class="max-w-7xl mx-auto space-y-8">
-        <div class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h1 class="text-2xl font-black italic tracking-tighter text-slate-800 leading-none">Maths<span class="text-yellow-500 underline">Pal</span></h1>
-            <div class="text-right">
-                <p id="teacherNameDisplay" class="font-black text-sm text-slate-600 italic">Professor</p>
-                <div id="proBadge" class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase mt-1">💎 PRO MEMBER</div>
+
+        <!-- =====================================================
+             HEADER
+        ====================================================== -->
+        <div
+            class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100"
+        >
+
+            <div class="text-left">
+
+                <h1
+                    class="text-2xl font-black italic tracking-tighter text-slate-800 leading-none"
+                >
+                    Maths<span class="text-yellow-500 underline">Pal</span>
+                </h1>
+
+                <p
+                    class="text-[8px] text-slate-400 font-black uppercase tracking-widest mt-2"
+                >
+                    Teacher Dashboard
+                </p>
+
             </div>
+
+
+            <div class="text-right">
+
+                <p
+                    id="teacherNameDisplay"
+                    class="font-black text-sm text-slate-600 italic"
+                >
+                    Professor
+                </p>
+
+                <div
+                    id="proBadge"
+                    class="hidden animate-bounce inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase mt-1"
+                >
+                    💎 PRO MEMBER
+                </div>
+
+            </div>
+
         </div>
 
-        <div id="pro-card" class="hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
-            <div class="relative z-10 space-y-4">
-                <h2 class="text-3xl font-black italic leading-tight">Unlock Pro 🚀</h2>
-                <button onclick="triggerPayment()" class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase shadow-xl">Upgrade with M-Pesa</button>
+
+        <!-- =====================================================
+             PRO CARD
+        ====================================================== -->
+        <div
+            id="pro-card"
+            class="hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden"
+        >
+
+            <div class="relative z-10 space-y-4 text-left">
+
+                <p
+                    class="text-blue-200 text-[9px] font-black uppercase tracking-[0.3em]"
+                >
+                    MathsPal Premium
+                </p>
+
+                <h2
+                    class="text-3xl font-black italic leading-tight"
+                >
+                    Unlock Pro 🚀
+                </h2>
+
+                <p
+                    class="text-sm text-blue-100 max-w-md"
+                >
+                    Unlock additional MathsPal features for your teaching workflow.
+                </p>
+
+                <button
+                    onclick="triggerPayment()"
+                    class="bg-yellow-400 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition"
+                >
+                    Upgrade with M-Pesa
+                </button>
+
             </div>
+
         </div>
-        
-        <details class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 max-w-md mx-auto group">
-            <summary class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest list-none">➕ Create New Quiz</summary>
-            <div class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t border-slate-100">
-                <input id="title" type="text" placeholder="Quiz Title" class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold bg-slate-50 focus:border-yellow-400">
-                <div id="q-list"><div class="flex gap-2 mb-2"><input class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black" value="1" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans"></div></div>
-                <button onclick="addQ()" class="text-blue-600 font-black text-[10px] uppercase tracking-tighter">+ Add Question</button>
-                <button id="saveBtn" onclick="saveQuiz()" class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase tracking-widest">Generate Code</button>
-                <div id="codeBox" class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl italic text-slate-900 text-center">CODE: <span id="finalCode">---</span></div>
+
+
+        <!-- =====================================================
+             CREATE QUIZ
+        ====================================================== -->
+        <details
+            class="bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-b-4 border-yellow-500 max-w-md mx-auto group"
+        >
+
+            <summary
+                class="p-5 font-black text-xs uppercase cursor-pointer text-yellow-400 text-center tracking-widest list-none"
+            >
+                ➕ Create New Quiz
+            </summary>
+
+
+            <div
+                class="bg-white p-6 space-y-4 rounded-b-3xl text-center border-t border-slate-100"
+            >
+
+                <!-- Quiz title -->
+                <input
+                    id="title"
+                    type="text"
+                    maxlength="120"
+                    placeholder="Quiz Title"
+                    class="w-full p-4 border-2 border-slate-50 rounded-2xl outline-none font-bold bg-slate-50 focus:border-yellow-400"
+                >
+
+
+                <!-- Questions -->
+                <div
+                    id="q-list"
+                    class="space-y-2"
+                >
+
+                    <div class="flex gap-2">
+
+                        <input
+                            class="w-12 p-3 border rounded-xl q-num bg-white text-center font-black"
+                            value="1"
+                            readonly
+                        >
+
+                        <input
+                            class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase"
+                            placeholder="Answer"
+                            maxlength="100"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- Add question -->
+                <button
+                    onclick="addQ()"
+                    type="button"
+                    class="text-blue-600 font-black text-[10px] uppercase tracking-tighter"
+                >
+                    + Add Question
+                </button>
+
+
+                <!-- Save -->
+                <button
+                    id="saveBtn"
+                    onclick="saveQuiz()"
+                    type="button"
+                    class="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black shadow-lg uppercase tracking-widest"
+                >
+                    Generate Code
+                </button>
+
+
+                <!-- Code -->
+                <div
+                    id="codeBox"
+                    class="hidden bg-yellow-400 p-6 rounded-[2rem] text-center mt-4 font-black text-3xl italic text-slate-900"
+                >
+
+                    <div
+                        class="text-[9px] uppercase tracking-[0.3em] mb-2"
+                    >
+                        Class Code
+                    </div>
+
+                    <span id="finalCode">
+                        ---
+                    </span>
+
+                    <button
+                        onclick="copyClassCode()"
+                        type="button"
+                        class="block mx-auto mt-4 bg-slate-900 text-yellow-400 px-5 py-2 rounded-xl text-[9px] uppercase tracking-widest"
+                    >
+                        Copy Code
+                    </button>
+
+                </div>
+
             </div>
+
         </details>
 
-        <h3 class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 italic">Assignments & Analytics</h3>
-        <div id="assignments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
 
-        <button onclick="handleLogout()" class="w-full py-10 text-slate-300 font-black text-[10px] uppercase tracking-[0.5em] transition">Sign Out</button>
+        <!-- =====================================================
+             DASHBOARD TITLE / REFRESH
+        ====================================================== -->
+        <div
+            class="flex flex-col md:flex-row justify-between items-center gap-4"
+        >
+
+            <h3
+                class="font-black text-sm uppercase tracking-[0.3em] text-slate-400 italic"
+            >
+                Assignments & Analytics
+            </h3>
+
+
+            <button
+                onclick="loadDashboard()"
+                id="refreshBtn"
+                type="button"
+                class="bg-white border border-slate-200 px-5 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 shadow-sm hover:bg-slate-100 transition"
+            >
+                🔄 Refresh Dashboard
+            </button>
+
+        </div>
+
+
+        <!-- =====================================================
+             DASHBOARD CONTAINER
+        ====================================================== -->
+        <div
+            id="assignments-container"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+        </div>
+
+
+        <!-- =====================================================
+             LOGOUT
+        ====================================================== -->
+        <button
+            onclick="handleLogout()"
+            type="button"
+            class="w-full py-10 text-slate-300 hover:text-red-400 font-black text-[10px] uppercase tracking-[0.5em] transition"
+        >
+            Sign Out
+        </button>
+
     </div>
 
-    <script>
-        const API_URL = 'https://mathspal-backend.onrender.com';
-        const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co'; 
-        const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn'; 
-        const supabaseClient = supabase.createClient(S_URL, S_KEY);
-        let userToken = "";
 
-        async function checkAuth() {
-            // Priority 1: Check the URL for token (from login)
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            let token = params.get('token') || localStorage.getItem('mp_session');
-            let name = params.get('name') || localStorage.getItem('mp_name');
+<script>
+
+    /* =========================================================
+       CONFIGURATION
+    ========================================================== */
+
+    const API_URL = 'https://mathspal-backend.onrender.com';
+
+    const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co';
+
+    const S_KEY = 'sb_publishable_Usp4A-ts9B6wBS1_XxJjVA_IZpwPMCn';
+
+    const supabaseClient = supabase.createClient(
+        S_URL,
+        S_KEY
+    );
+
+    let userToken = "";
+
+
+    /* =========================================================
+       SMALL HELPERS
+    ========================================================== */
+
+    function safeText(value) {
+
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    function parseJSONValue(value) {
+
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        if (typeof value !== "string") {
+            return value;
+        }
+
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(trimmed);
+        } catch (e) {
+            return null;
+        }
+    }
+
+
+    function normalizeStatus(status) {
+
+        if (status === null || status === undefined) {
+            return "";
+        }
+
+        return String(status)
+            .trim()
+            .toLowerCase()
+            .replace(/[\s_-]+/g, "");
+    }
+
+
+    function isCorrectStatus(status) {
+
+        const normalized = normalizeStatus(status);
+
+        return (
+            normalized === "correct" ||
+            normalized === "right" ||
+            normalized === "pass" ||
+            normalized === "passed" ||
+            normalized === "true" ||
+            normalized === "✓"
+        );
+    }
+
+
+    function normalizeQuestionNumber(value) {
+
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        const match = String(value).match(/\d+/);
+
+        if (!match) {
+            return null;
+        }
+
+        return Number(match[0]);
+    }
+
+
+    function getMasterKey(quiz) {
+
+        let key = quiz?.master_key;
+
+        key = parseJSONValue(key);
+
+        if (!key || typeof key !== "object") {
+            return {};
+        }
+
+        return key;
+    }
+
+
+    /* =========================================================
+       RESULT NORMALIZER
+       
+       Supports:
+
+       1. results_json array
+       2. breakdown object
+       3. breakdown array
+       4. JSON strings
+       5. Different status capitalizations
+    ========================================================== */
+
+    function getSubmissionResults(submission) {
+
+        if (!submission) {
+            return [];
+        }
+
+
+        /* -----------------------------------------------------
+           FIRST: results_json
+        ------------------------------------------------------ */
+
+        let results = parseJSONValue(
+            submission.results_json
+        );
+
+
+        if (Array.isArray(results)) {
+
+            return results
+                .map((item, index) => {
+
+                    if (!item || typeof item !== "object") {
+                        return null;
+                    }
+
+                    const q =
+                        normalizeQuestionNumber(
+                            item.q ??
+                            item.question ??
+                            item.question_number ??
+                            index + 1
+                        );
+
+                    if (!q) {
+                        return null;
+                    }
+
+                    return {
+                        q: q,
+                        status: item.status ?? item.result ?? "",
+                        expected: item.expected ?? "",
+                        detected: item.detected ?? ""
+                    };
+
+                })
+                .filter(Boolean);
+        }
+
+
+        /* -----------------------------------------------------
+           SECOND: breakdown
+        ------------------------------------------------------ */
+
+        let breakdown = parseJSONValue(
+            submission.breakdown
+        );
+
+
+        if (!breakdown) {
+            return [];
+        }
+
+
+        /* -----------------------------------------------------
+           BREAKDOWN ARRAY
+        ------------------------------------------------------ */
+
+        if (Array.isArray(breakdown)) {
+
+            return breakdown
+                .map((item, index) => {
+
+                    if (!item || typeof item !== "object") {
+                        return null;
+                    }
+
+                    const q =
+                        normalizeQuestionNumber(
+                            item.q ??
+                            item.question ??
+                            item.question_number ??
+                            index + 1
+                        );
+
+                    if (!q) {
+                        return null;
+                    }
+
+                    return {
+                        q: q,
+                        status: item.status ?? "",
+                        expected: item.expected ?? "",
+                        detected: item.detected ?? ""
+                    };
+
+                })
+                .filter(Boolean);
+        }
+
+
+        /* -----------------------------------------------------
+           BREAKDOWN OBJECT
+           
+           Example:
+
+           {
+             "1": {
+                expected: "5",
+                detected: "5",
+                status: "Correct"
+             }
+           }
+        ------------------------------------------------------ */
+
+        if (
+            typeof breakdown === "object" &&
+            !Array.isArray(breakdown)
+        ) {
+
+            return Object.entries(breakdown)
+                .map(([key, value]) => {
+
+                    const q =
+                        normalizeQuestionNumber(key);
+
+                    if (!q) {
+                        return null;
+                    }
+
+
+                    if (
+                        value &&
+                        typeof value === "object"
+                    ) {
+
+                        return {
+                            q: q,
+                            status: value.status ?? "",
+                            expected: value.expected ?? "",
+                            detected: value.detected ?? ""
+                        };
+
+                    }
+
+
+                    return {
+                        q: q,
+                        status: value,
+                        expected: "",
+                        detected: ""
+                    };
+
+                })
+                .filter(Boolean);
+        }
+
+
+        return [];
+    }
+
+
+    /* =========================================================
+       HTTP HELPERS
+    ========================================================== */
+
+    async function readResponse(response) {
+
+        const text = await response.text();
+
+        let data = null;
+
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch (e) {
+            data = null;
+        }
+
+        if (!response.ok) {
+
+            const message =
+                data?.error ||
+                data?.detail ||
+                text ||
+                `Request failed (${response.status})`;
+
+            throw new Error(message);
+        }
+
+        return data;
+    }
+
+
+    /* =========================================================
+       AUTH
+    ========================================================== */
+
+    async function checkAuth() {
+
+        try {
+
+            const hash =
+                window.location.hash.substring(1);
+
+            const params =
+                new URLSearchParams(hash);
+
+
+            let token =
+                params.get('token') ||
+                localStorage.getItem('mp_session');
+
+
+            let name =
+                params.get('name') ||
+                localStorage.getItem('mp_name');
+
+
+            /* -------------------------------------------------
+               Supabase fallback
+            -------------------------------------------------- */
 
             if (!token) {
-                // Priority 2: Check Supabase session
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                token = session?.access_token;
+
+                const {
+                    data: {
+                        session
+                    }
+                } = await supabaseClient.auth.getSession();
+
+                token =
+                    session?.access_token || "";
             }
 
-            if (!token) { window.location.href = 'login.html'; return; }
 
-            // Success: Update memory and UI
+            /* -------------------------------------------------
+               No session
+            -------------------------------------------------- */
+
+            if (!token) {
+
+                window.location.href = 'login.html';
+
+                return;
+            }
+
+
+            /* -------------------------------------------------
+               Save session
+            -------------------------------------------------- */
+
             userToken = token;
-            localStorage.setItem('mp_session', token);
-            if(name) {
-                localStorage.setItem('mp_name', name);
-                document.getElementById('teacherNameDisplay').innerText = name;
+
+            localStorage.setItem(
+                'mp_session',
+                token
+            );
+
+
+            if (name) {
+
+                localStorage.setItem(
+                    'mp_name',
+                    name
+                );
+
+                document.getElementById(
+                    'teacherNameDisplay'
+                ).innerText = name;
             }
 
-            document.getElementById('loader').classList.add('hidden');
 
-            // Double check Database for Pro and Full Name
-            const email = localStorage.getItem('mp_email');
-            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('email', email).maybeSingle();
-            if (profile) {
-                document.getElementById('teacherNameDisplay').innerText = profile.full_name;
-                if (profile.is_pro) {
-                    document.getElementById('proBadge').classList.remove('hidden');
-                    document.getElementById('pro-card').classList.add('hidden');
-                } else { document.getElementById('pro-card').classList.remove('hidden'); }
+            /* -------------------------------------------------
+               Hide loader
+            -------------------------------------------------- */
+
+            document.getElementById(
+                'loader'
+            ).classList.add('hidden');
+
+
+            /* -------------------------------------------------
+               Check teacher profile
+            -------------------------------------------------- */
+
+            const email =
+                localStorage.getItem('mp_email');
+
+
+            if (email) {
+
+                const {
+                    data: profile,
+                    error
+                } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('email', email)
+                    .maybeSingle();
+
+
+                if (!error && profile) {
+
+                    if (profile.full_name) {
+
+                        document.getElementById(
+                            'teacherNameDisplay'
+                        ).innerText =
+                            profile.full_name;
+                    }
+
+
+                    if (profile.is_pro) {
+
+                        document
+                            .getElementById('proBadge')
+                            .classList
+                            .remove('hidden');
+
+                        document
+                            .getElementById('pro-card')
+                            .classList
+                            .add('hidden');
+
+                    } else {
+
+                        document
+                            .getElementById('pro-card')
+                            .classList
+                            .remove('hidden');
+                    }
+                }
             }
 
-            loadDashboard();
+
+            /* -------------------------------------------------
+               Load dashboard
+            -------------------------------------------------- */
+
+            await loadDashboard();
+
+        } catch (error) {
+
+            console.error(
+                "Authentication error:",
+                error
+            );
+
+            document.getElementById(
+                'loaderText'
+            ).innerText =
+                "Session error. Redirecting...";
+
+            setTimeout(() => {
+
+                window.location.href =
+                    'login.html';
+
+            }, 1200);
         }
+    }
 
-        async function loadDashboard() {
-            const container = document.getElementById('assignments-container');
-            try {
-                const [aRes, sRes] = await Promise.all([
-                    fetch(`${API_URL}/assignments`, { headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json()),
-                    fetch(`${API_URL}/submissions`, { headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json())
-                ]);
-                const assignments = aRes.data || [], allSubs = sRes.data || [];
-                container.innerHTML = assignments.map(quiz => {
-                    const subs = allSubs.filter(s => s.assignment_id === quiz.id);
-                    let stats = {};
-                    subs.forEach(s => { if (s.results_json) { s.results_json.forEach(res => {
-                        if (!stats[res.q]) stats[res.q] = { correct: 0, total: 0 };
-                        stats[res.q].total++; if (res.status === 'correct') stats[res.q].correct++;
-                    }); }});
-                    const totalQs = Object.keys(quiz.master_key).length;
-                    const avg = subs.length > 0 ? Math.round((subs.reduce((a,b) => a + (b.score || 0), 0) / (subs.length * totalQs)) * 100) : 0;
-                    return `
-                    <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit">
-                        <div class="p-8 space-y-4">
-                            <div class="flex justify-between items-start">
-                                <div><h4 class="font-black text-slate-800 text-xl leading-none uppercase text-left">${quiz.title}</h4>
-                                <span class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase italic mt-2 inline-block">${quiz.short_code}</span></div>
-                                <div id="del-zone-${quiz.id}"><button onclick="confirmDelete('${quiz.id}')" class="text-slate-200 hover:text-red-400 font-black text-[9px] uppercase tracking-widest">Delete</button></div>
-                            </div>
-                            <div class="flex justify-between items-end border-t pt-4 leading-none">
-                                <div class="text-[20px] font-black ${avg < 50 ? 'text-red-500' : 'text-green-600'}">${avg}% <span class="text-[8px] text-slate-300 block uppercase">Avg</span></div>
-                                <div class="text-right text-[10px] font-bold text-slate-400 uppercase">${subs.length} Subs</div>
-                            </div>
+
+    /* =========================================================
+       LOAD DASHBOARD
+    ========================================================== */
+
+    async function loadDashboard() {
+
+        const container =
+            document.getElementById(
+                'assignments-container'
+            );
+
+
+        const refreshBtn =
+            document.getElementById(
+                'refreshBtn'
+            );
+
+
+        try {
+
+            refreshBtn.innerText =
+                "⏳ Loading...";
+
+            refreshBtn.disabled = true;
+
+
+            container.innerHTML = `
+                <div class="col-span-full py-16 text-center">
+                    <div class="border-4 border-slate-200 border-t-yellow-500 rounded-full w-10 h-10 spin mx-auto"></div>
+                    <p class="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Loading analytics...
+                    </p>
+                </div>
+            `;
+
+
+            /* -------------------------------------------------
+               Fetch assignments + submissions
+            -------------------------------------------------- */
+
+            const [
+                assignmentsResponse,
+                submissionsResponse
+            ] = await Promise.all([
+
+                fetch(
+                    `${API_URL}/assignments`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization':
+                                `Bearer ${userToken}`
+                        },
+                        cache: 'no-store'
+                    }
+                ),
+
+                fetch(
+                    `${API_URL}/submissions`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization':
+                                `Bearer ${userToken}`
+                        },
+                        cache: 'no-store'
+                    }
+                )
+
+            ]);
+
+
+            const aRes =
+                await readResponse(
+                    assignmentsResponse
+                );
+
+
+            const sRes =
+                await readResponse(
+                    submissionsResponse
+                );
+
+
+            const assignments =
+                Array.isArray(aRes?.data)
+                    ? aRes.data
+                    : [];
+
+
+            const allSubs =
+                Array.isArray(sRes?.data)
+                    ? sRes.data
+                    : [];
+
+
+            /* -------------------------------------------------
+               No assignments
+            -------------------------------------------------- */
+
+            if (assignments.length === 0) {
+
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-12 text-center">
+
+                        <div class="text-5xl mb-5">
+                            📚
                         </div>
-                        <details class="border-t border-slate-50 group">
-                            <summary class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition text-center">View Analytics</summary>
-                            <div class="p-6 bg-slate-50 space-y-6">
-                                <table class="w-full text-left text-[10px]">
-                                    <thead class="text-slate-400 uppercase font-black"><tr><th>Q#</th><th class="text-center">✅</th><th class="text-right">Pass %</th></tr></thead>
-                                    <tbody class="divide-y divide-slate-100">${Object.keys(stats).sort((a,b)=>a-b).map(qNum => {
-                                        const s = stats[qNum]; const rate = Math.round((s.correct / s.total) * 100);
-                                        return `<tr><td class="py-2">Q${qNum}</td><td class="text-center text-green-600 font-bold">${s.correct}/${s.total}</td><td class="text-right ${rate<50?'text-red-500':'text-slate-900'} font-black">${rate}% ${rate<50?'🚩':''}</td></tr>`
-                                    }).join('')}</tbody>
-                                </table>
-                                <div class="space-y-2">${subs.map(s => `<div class="flex justify-between p-3 bg-white rounded-xl text-[10px] shadow-sm border font-black uppercase text-left"><span>${s.student_name}</span> <span class="text-slate-400 font-mono text-right">${s.score}/${totalQs}</span></div>`).join('')}</div>
+
+                        <h4 class="font-black text-xl text-slate-800">
+                            No assignments yet
+                        </h4>
+
+                        <p class="text-xs text-slate-400 font-bold mt-2">
+                            Create your first quiz above.
+                        </p>
+
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            /* -------------------------------------------------
+               Build assignment cards
+            -------------------------------------------------- */
+
+            container.innerHTML =
+                assignments
+                    .map(quiz => {
+
+                        const subs =
+                            allSubs.filter(
+                                submission =>
+                                    String(
+                                        submission.assignment_id
+                                    ) ===
+                                    String(quiz.id)
+                            );
+
+
+                        const masterKey =
+                            getMasterKey(quiz);
+
+
+                        const questionNumbers =
+                            Object.keys(masterKey)
+                                .map(
+                                    normalizeQuestionNumber
+                                )
+                                .filter(Boolean)
+                                .sort(
+                                    (a, b) => a - b
+                                );
+
+
+                        const totalQs =
+                            questionNumbers.length;
+
+
+                        /* -----------------------------------------
+                           Question statistics
+                        ------------------------------------------ */
+
+                        const stats = {};
+
+
+                        questionNumbers.forEach(q => {
+
+                            stats[q] = {
+                                correct: 0,
+                                total: 0
+                            };
+
+                        });
+
+
+                        /* -----------------------------------------
+                           Read every submission
+                        ------------------------------------------ */
+
+                        subs.forEach(submission => {
+
+                            const results =
+                                getSubmissionResults(
+                                    submission
+                                );
+
+
+                            results.forEach(result => {
+
+                                const q =
+                                    normalizeQuestionNumber(
+                                        result.q
+                                    );
+
+
+                                if (!q) {
+                                    return;
+                                }
+
+
+                                if (!stats[q]) {
+
+                                    stats[q] = {
+                                        correct: 0,
+                                        total: 0
+                                    };
+
+                                }
+
+
+                                stats[q].total++;
+
+
+                                if (
+                                    isCorrectStatus(
+                                        result.status
+                                    )
+                                ) {
+
+                                    stats[q].correct++;
+
+                                }
+
+                            });
+
+                        });
+
+
+                        /* -----------------------------------------
+                           Overall score average
+                        ------------------------------------------ */
+
+                        let scoreTotal = 0;
+                        let scoreCount = 0;
+
+
+                        subs.forEach(submission => {
+
+                            const score =
+                                Number(
+                                    submission.score
+                                );
+
+
+                            if (
+                                Number.isFinite(score)
+                            ) {
+
+                                scoreTotal += score;
+                                scoreCount++;
+
+                            }
+
+                        });
+
+
+                        const avg =
+                            scoreCount > 0 &&
+                            totalQs > 0
+                                ? Math.round(
+                                    (
+                                        scoreTotal /
+                                        (
+                                            scoreCount *
+                                            totalQs
+                                        )
+                                    ) * 100
+                                )
+                                : 0;
+
+
+                        /* -----------------------------------------
+                           Average display
+                        ------------------------------------------ */
+
+                        const avgClass =
+                            avg < 50
+                                ? 'text-red-500'
+                                : 'text-green-600';
+
+
+                        /* -----------------------------------------
+                           Question analytics
+                        ------------------------------------------ */
+
+                        let questionRows = '';
+
+
+                        if (
+                            questionNumbers.length === 0
+                        ) {
+
+                            questionRows = `
+                                <tr>
+                                    <td
+                                        colspan="3"
+                                        class="py-5 text-center text-slate-400 font-bold"
+                                    >
+                                        No questions found.
+                                    </td>
+                                </tr>
+                            `;
+
+                        } else {
+
+                            questionRows =
+                                questionNumbers
+                                    .map(qNum => {
+
+                                        const stat =
+                                            stats[qNum] || {
+                                                correct: 0,
+                                                total: 0
+                                            };
+
+
+                                        /*
+                                         * IMPORTANT:
+                                         *
+                                         * If nobody has submitted this question
+                                         * yet, we show -- instead of pretending
+                                         * that the pass rate is 0%.
+                                         */
+
+                                        const rate =
+                                            stat.total > 0
+                                                ? Math.round(
+                                                    (
+                                                        stat.correct /
+                                                        stat.total
+                                                    ) * 100
+                                                )
+                                                : null;
+
+
+                                        const rateText =
+                                            rate === null
+                                                ? '--'
+                                                : `${rate}%`;
+
+
+                                        const flag =
+                                            rate !== null &&
+                                            rate < 50
+                                                ? '🚩'
+                                                : '';
+
+
+                                        const rateClass =
+                                            rate !== null &&
+                                            rate < 50
+                                                ? 'text-red-500'
+                                                : 'text-slate-900';
+
+
+                                        return `
+                                            <tr class="fade-in">
+
+                                                <td class="py-3 font-black">
+                                                    Q${qNum}
+                                                </td>
+
+                                                <td class="text-center text-green-600 font-bold">
+                                                    ${stat.correct}/${stat.total}
+                                                </td>
+
+                                                <td class="text-right ${rateClass} font-black">
+                                                    ${rateText} ${flag}
+                                                </td>
+
+                                            </tr>
+                                        `;
+
+                                    })
+                                    .join('');
+                        }
+
+
+                        /* -----------------------------------------
+                           Student rows
+                        ------------------------------------------ */
+
+                        let studentRows = '';
+
+
+                        if (subs.length === 0) {
+
+                            studentRows = `
+                                <div
+                                    class="p-4 bg-white rounded-xl border text-[10px] text-slate-400 font-bold text-center"
+                                >
+                                    No student submissions yet.
+                                </div>
+                            `;
+
+                        } else {
+
+                            studentRows =
+                                subs
+                                    .map(submission => {
+
+                                        const studentName =
+                                            safeText(
+                                                submission.student_name ||
+                                                "Unknown Student"
+                                            );
+
+
+                                        const score =
+                                            Number(
+                                                submission.score
+                                            );
+
+
+                                        const scoreDisplay =
+                                            Number.isFinite(score)
+                                                ? `${score}/${totalQs || '--'}`
+                                                : `--/${totalQs || '--'}`;
+
+
+                                        return `
+                                            <div
+                                                class="flex justify-between items-center p-3 bg-white rounded-xl text-[10px] shadow-sm border font-black uppercase text-left"
+                                            >
+
+                                                <span class="truncate pr-3">
+                                                    ${studentName}
+                                                </span>
+
+                                                <span
+                                                    class="text-slate-400 font-mono text-right whitespace-nowrap"
+                                                >
+                                                    ${scoreDisplay}
+                                                </span>
+
+                                            </div>
+                                        `;
+
+                                    })
+                                    .join('');
+                        }
+
+
+                        /* -----------------------------------------
+                           Return assignment card
+                        ------------------------------------------ */
+
+                        return `
+
+                            <div
+                                class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col h-fit fade-in"
+                            >
+
+                                <!-- Assignment header -->
+                                <div class="p-8 space-y-4">
+
+                                    <div
+                                        class="flex justify-between items-start gap-4"
+                                    >
+
+                                        <div class="min-w-0">
+
+                                            <h4
+                                                class="font-black text-slate-800 text-xl leading-tight uppercase text-left break-words"
+                                            >
+                                                ${safeText(
+                                                    quiz.title ||
+                                                    "Untitled Assignment"
+                                                )}
+                                            </h4>
+
+                                            <span
+                                                class="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase italic mt-2 inline-block"
+                                            >
+                                                ${safeText(
+                                                    quiz.short_code ||
+                                                    "---"
+                                                )}
+                                            </span>
+
+                                        </div>
+
+
+                                        <div
+                                            id="del-zone-${safeText(quiz.id)}"
+                                            class="flex-shrink-0"
+                                        >
+
+                                            <button
+                                                onclick="confirmDelete('${safeText(quiz.id)}')"
+                                                type="button"
+                                                class="text-slate-200 hover:text-red-400 font-black text-[9px] uppercase tracking-widest transition"
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- Average + submissions -->
+                                    <div
+                                        class="flex justify-between items-end border-t pt-4 leading-none"
+                                    >
+
+                                        <div
+                                            class="text-[20px] font-black ${avgClass}"
+                                        >
+
+                                            ${avg}%
+
+                                            <span
+                                                class="text-[8px] text-slate-300 block uppercase"
+                                            >
+                                                Avg
+                                            </span>
+
+                                        </div>
+
+
+                                        <div
+                                            class="text-right text-[10px] font-bold text-slate-400 uppercase"
+                                        >
+                                            ${subs.length} Subs
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Analytics -->
+                                <details
+                                    class="border-t border-slate-50 group"
+                                >
+
+                                    <summary
+                                        class="p-4 text-center list-none cursor-pointer text-[9px] font-black text-blue-500 uppercase tracking-widest hover:bg-slate-50 transition"
+                                    >
+                                        View Analytics
+                                    </summary>
+
+
+                                    <div
+                                        class="p-6 bg-slate-50 space-y-6"
+                                    >
+
+                                        <!-- Question table -->
+                                        <div class="overflow-x-auto">
+
+                                            <table
+                                                class="w-full text-left text-[10px]"
+                                            >
+
+                                                <thead
+                                                    class="text-slate-400 uppercase font-black"
+                                                >
+
+                                                    <tr>
+
+                                                        <th>
+                                                            Q#
+                                                        </th>
+
+                                                        <th class="text-center">
+                                                            ✅
+                                                        </th>
+
+                                                        <th class="text-right">
+                                                            Pass %
+                                                        </th>
+
+                                                    </tr>
+
+                                                </thead>
+
+
+                                                <tbody
+                                                    class="divide-y divide-slate-100"
+                                                >
+
+                                                    ${questionRows}
+
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+
+
+                                        <!-- Student scores -->
+                                        <div class="space-y-2">
+
+                                            <div
+                                                class="text-[8px] text-slate-400 font-black uppercase tracking-widest text-left"
+                                            >
+                                                Student Results
+                                            </div>
+
+                                            ${studentRows}
+
+                                        </div>
+
+                                    </div>
+
+                                </details>
+
                             </div>
-                        </details>
-                    </div>`;
-                }).join('');
-            } catch (e) { container.innerHTML = "Dashboard error."; }
+
+                        `;
+
+                    })
+                    .join('');
+
+
+        } catch (error) {
+
+            console.error(
+                "Dashboard loading error:",
+                error
+            );
+
+
+            container.innerHTML = `
+
+                <div
+                    class="col-span-full bg-white rounded-[2.5rem] shadow-sm border border-red-100 p-10 text-center"
+                >
+
+                    <div class="text-4xl mb-4">
+                        ⚠️
+                    </div>
+
+                    <h4
+                        class="font-black text-lg text-red-500"
+                    >
+                        Dashboard could not load
+                    </h4>
+
+                    <p
+                        class="text-xs text-slate-400 font-bold mt-2"
+                    >
+                        ${safeText(
+                            error.message ||
+                            "Please try again."
+                        )}
+                    </p>
+
+                    <button
+                        onclick="loadDashboard()"
+                        type="button"
+                        class="mt-5 bg-slate-900 text-yellow-400 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest"
+                    >
+                        Try Again
+                    </button>
+
+                </div>
+
+            `;
+
+        } finally {
+
+            refreshBtn.innerText =
+                "🔄 Refresh Dashboard";
+
+            refreshBtn.disabled = false;
+
         }
 
-        function confirmDelete(id) {
-            const zone = document.getElementById(`del-zone-${id}`);
-            zone.innerHTML = `<div class="flex gap-2"><button onclick="actuallyDelete('${id}')" class="text-red-600 font-black text-[9px]"><b>Confirm</b></button><button onclick="loadDashboard()" class="text-slate-300 font-bold text-[9px]"><b>Cancel</b></button></div>`;
+    }
+
+
+    /* =========================================================
+       DELETE CONFIRMATION
+    ========================================================== */
+
+    function confirmDelete(id) {
+
+        const zone =
+            document.getElementById(
+                `del-zone-${id}`
+            );
+
+
+        if (!zone) {
+            return;
         }
 
-        async function actuallyDelete(id) {
-            const fd = new FormData(); fd.append('assignment_id', id);
-            try {
-                await fetch(`${API_URL}/delete-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } });
-                loadDashboard();
-            } catch (e) { alert("Delete failed."); }
+
+        zone.innerHTML = `
+
+            <div class="flex gap-2 items-center">
+
+                <button
+                    onclick="actuallyDelete('${safeText(id)}')"
+                    type="button"
+                    class="text-red-600 font-black text-[9px] uppercase"
+                >
+                    Confirm
+                </button>
+
+                <button
+                    onclick="loadDashboard()"
+                    type="button"
+                    class="text-slate-300 hover:text-slate-500 font-bold text-[9px] uppercase"
+                >
+                    Cancel
+                </button>
+
+            </div>
+
+        `;
+    }
+
+
+    /* =========================================================
+       DELETE ASSIGNMENT
+    ========================================================== */
+
+    async function actuallyDelete(id) {
+
+        if (!id) {
+            return;
         }
 
-        function handleLogout() { localStorage.clear(); supabaseClient.auth.signOut().then(() => { window.location.href = 'login.html'; }); }
-        
-        function addQ() {
-            const list = document.getElementById('q-list');
-            const num = list.children.length + 1;
-            const div = document.createElement('div');
-            div.className = "flex gap-2 mb-2";
-            div.innerHTML = `<input class="w-12 p-3 border rounded-xl q-num text-center font-black text-slate-300" value="${num}" readonly><input class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase" placeholder="Ans">`;
-            list.appendChild(div);
+
+        const zone =
+            document.getElementById(
+                `del-zone-${id}`
+            );
+
+
+        if (zone) {
+
+            zone.innerHTML = `
+                <span class="text-[9px] font-black text-slate-400">
+                    DELETING...
+                </span>
+            `;
+
         }
 
-        async function saveQuiz() {
-            const btn = document.getElementById('saveBtn');
-            const title = document.getElementById('title').value;
-            if(!title) return alert("Title required!");
-            btn.innerText = "SAVING...";
-            const answers = {};
-            document.querySelectorAll('.q-ans').forEach((input, i) => { if(input.value) answers[i+1] = input.value; });
-            const fd = new FormData(); fd.append('title', title); fd.append('master_key', JSON.stringify(answers));
-            const res = await fetch(`${API_URL}/create-assignment`, { method: 'POST', body: fd, headers: { 'Authorization': `Bearer ${userToken}` } }).then(r => r.json());
-            document.getElementById('finalCode').innerText = res.short_code;
-            document.getElementById('codeBox').classList.remove('hidden');
-            btn.innerText = "GENERATE CODE";
-            loadDashboard();
+
+        try {
+
+            const fd =
+                new FormData();
+
+            fd.append(
+                'assignment_id',
+                id
+            );
+
+
+            const response =
+                await fetch(
+                    `${API_URL}/delete-assignment`,
+                    {
+                        method: 'POST',
+                        body: fd,
+                        headers: {
+                            'Authorization':
+                                `Bearer ${userToken}`
+                        }
+                    }
+                );
+
+
+            await readResponse(
+                response
+            );
+
+
+            await loadDashboard();
+
+
+        } catch (error) {
+
+            console.error(
+                "Delete error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Delete failed."
+            );
+
+            await loadDashboard();
         }
 
-        checkAuth();
-    </script>
+    }
+
+
+    /* =========================================================
+       ADD QUESTION
+    ========================================================== */
+
+    function addQ() {
+
+        const list =
+            document.getElementById(
+                'q-list'
+            );
+
+
+        const num =
+            list.children.length + 1;
+
+
+        const div =
+            document.createElement(
+                'div'
+            );
+
+
+        div.className =
+            "flex gap-2";
+
+
+        div.innerHTML = `
+
+            <input
+                class="w-12 p-3 border rounded-xl q-num text-center font-black text-slate-300 bg-slate-50"
+                value="${num}"
+                readonly
+            >
+
+            <input
+                class="flex-1 p-3 border rounded-xl q-ans font-bold text-center uppercase"
+                placeholder="Answer"
+                maxlength="100"
+            >
+
+        `;
+
+
+        list.appendChild(div);
+
+
+        /* Put cursor into new answer field */
+        const answerInput =
+            div.querySelector(
+                '.q-ans'
+            );
+
+
+        if (answerInput) {
+            answerInput.focus();
+        }
+
+    }
+
+
+    /* =========================================================
+       SAVE QUIZ
+    ========================================================== */
+
+    async function saveQuiz() {
+
+        const btn =
+            document.getElementById(
+                'saveBtn'
+            );
+
+
+        const titleInput =
+            document.getElementById(
+                'title'
+            );
+
+
+        const title =
+            titleInput.value.trim();
+
+
+        /* -----------------------------------------------------
+           Validate title
+        ------------------------------------------------------ */
+
+        if (!title) {
+
+            alert(
+                "Please enter a quiz title."
+            );
+
+            titleInput.focus();
+
+            return;
+        }
+
+
+        /* -----------------------------------------------------
+           Collect answers
+        ------------------------------------------------------ */
+
+        const answerInputs =
+            document.querySelectorAll(
+                '.q-ans'
+            );
+
+
+        const answers = {};
+
+
+        let missingAnswer = false;
+
+
+        answerInputs.forEach(
+            (input, index) => {
+
+                const answer =
+                    input.value.trim();
+
+
+                if (!answer) {
+
+                    missingAnswer = true;
+
+                } else {
+
+                    answers[index + 1] =
+                        answer;
+
+                }
+
+            }
+        );
+
+
+        if (missingAnswer) {
+
+            alert(
+                "Please enter an answer for every question before generating the Class Code."
+            );
+
+            return;
+        }
+
+
+        if (
+            Object.keys(answers).length === 0
+        ) {
+
+            alert(
+                "Add at least one question."
+            );
+
+            return;
+        }
+
+
+        /* -----------------------------------------------------
+           Save
+        ------------------------------------------------------ */
+
+        btn.disabled = true;
+
+        btn.innerText =
+            "SAVING...";
+
+
+        try {
+
+            const fd =
+                new FormData();
+
+
+            fd.append(
+                'title',
+                title
+            );
+
+
+            fd.append(
+                'master_key',
+                JSON.stringify(
+                    answers
+                )
+            );
+
+
+            const response =
+                await fetch(
+                    `${API_URL}/create-assignment`,
+                    {
+                        method: 'POST',
+                        body: fd,
+                        headers: {
+                            'Authorization':
+                                `Bearer ${userToken}`
+                        }
+                    }
+                );
+
+
+            const result =
+                await readResponse(
+                    response
+                );
+
+
+            const code =
+                result?.short_code ||
+                result?.code;
+
+
+            if (!code) {
+
+                throw new Error(
+                    "The assignment was created but no Class Code was returned."
+                );
+
+            }
+
+
+            /* -------------------------------------------------
+               Show Class Code
+            -------------------------------------------------- */
+
+            document.getElementById(
+                'finalCode'
+            ).innerText =
+                code;
+
+
+            document.getElementById(
+                'codeBox'
+            ).classList.remove(
+                'hidden'
+            );
+
+
+            btn.innerText =
+                "CODE GENERATED ✓";
+
+
+            /* -------------------------------------------------
+               Refresh analytics
+            -------------------------------------------------- */
+
+            await loadDashboard();
+
+
+        } catch (error) {
+
+            console.error(
+                "Create assignment error:",
+                error
+            );
+
+
+            alert(
+                error.message ||
+                "Could not create assignment."
+            );
+
+
+            btn.innerText =
+                "GENERATE CODE";
+
+
+        } finally {
+
+            btn.disabled = false;
+
+        }
+
+    }
+
+
+    /* =========================================================
+       COPY CLASS CODE
+    ========================================================== */
+
+    async function copyClassCode() {
+
+        const code =
+            document.getElementById(
+                'finalCode'
+            ).innerText.trim();
+
+
+        if (
+            !code ||
+            code === "---"
+        ) {
+
+            return;
+        }
+
+
+        try {
+
+            await navigator.clipboard.writeText(
+                code
+            );
+
+            alert(
+                `Class Code ${code} copied.`
+            );
+
+        } catch (error) {
+
+            /* Fallback for browsers that block clipboard API */
+
+            const temp =
+                document.createElement(
+                    'textarea'
+                );
+
+            temp.value =
+                code;
+
+            document.body.appendChild(
+                temp
+            );
+
+            temp.select();
+
+            document.execCommand(
+                'copy'
+            );
+
+            temp.remove();
+
+            alert(
+                `Class Code ${code} copied.`
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       PRO PAYMENT PLACEHOLDER
+       
+       IMPORTANT:
+       The existing admin.html referenced triggerPayment()
+       but did not define it.
+
+       We define it here so the dashboard does not throw a
+       JavaScript error.
+
+       No payment endpoint is invented.
+    ========================================================== */
+
+    function triggerPayment() {
+
+        alert(
+            "The Pro M-Pesa payment flow is not connected to this dashboard yet."
+        );
+
+    }
+
+
+    /* =========================================================
+       LOGOUT
+    ========================================================== */
+
+    async function handleLogout() {
+
+        try {
+
+            await supabaseClient.auth.signOut();
+
+        } catch (error) {
+
+            console.warn(
+                "Supabase logout warning:",
+                error
+            );
+
+        }
+
+
+        localStorage.removeItem(
+            'mp_session'
+        );
+
+        localStorage.removeItem(
+            'mp_email'
+        );
+
+        localStorage.removeItem(
+            'mp_name'
+        );
+
+
+        window.location.href =
+            'login.html';
+
+    }
+
+
+    /* =========================================================
+       START DASHBOARD
+    ========================================================== */
+
+    checkAuth();
+
+</script>
+
 </body>
 </html>
