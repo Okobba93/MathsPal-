@@ -10,6 +10,7 @@
     <title>MathsPal Student App</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
 
     <style>
         .tick {
@@ -243,23 +244,21 @@
             <p class="text-yellow-400 text-xs font-black uppercase tracking-widest">Photo review</p>
             <h2 class="text-2xl font-black">Check your answer sheet</h2>
             <p class="text-slate-300 text-xs leading-relaxed">
-                Make sure the whole page is visible, readable and not blurred.
-                You can retake or rotate this photograph before adding it.
+                MathsPal is scanning your page in this browser. Check the corrected page
+                carefully before approving it for grading.
             </p>
         </div>
 
         <div class="flex-1 min-h-0 flex items-center justify-center bg-black rounded-2xl p-2 border border-slate-700">
             <img
                 id="cameraPhotoReview"
-                alt="Captured answer sheet awaiting approval"
+                alt="Automatically scanned MathsPal answer sheet awaiting approval"
                 class="max-h-[62vh] max-w-full object-contain rounded-lg"
             >
         </div>
 
-        <p class="text-[10px] text-amber-200 text-center leading-relaxed">
-            This is a preview of your captured photograph. Automatic page detection,
-            cropping and straightening are performed by the grading server; this screen
-            does not yet display the server-corrected image.
+        <p id="scannerStatus" class="text-[11px] text-emerald-200 text-center leading-relaxed">
+            Scanned page preview. The image shown here is the image that will be sent for grading.
         </p>
 
         <div class="grid grid-cols-2 gap-3">
@@ -410,6 +409,8 @@
         // Camera image is held separately until the student approves it.
         let pendingCameraFile = null;
         let cameraPreviewUrl = null;
+        let pendingImagePreprocessed = false;
+        let openCvReadyPromise = null;
 
         let markedPdfUrl = null;
 
@@ -860,21 +861,166 @@
                     { type: 'image/jpeg', lastModified: Date.now() }
                 );
 
-                // Keep the existing compression policy used by the app.
-                pendingCameraFile = await compress(originalFile);
                 stopCameraStream();
+                setScannerStatus('Scanning page edges and correcting perspective…', false);
+                switchView('camera-review');
+                const scanned = await scanMathsPalPage(originalFile);
+                pendingCameraFile = new File(
+                    [scanned],
+                    'MathsPal-Scanned-Page.jpg',
+                    { type: 'image/jpeg', lastModified: Date.now() }
+                );
+                pendingCameraFile.mathsPalPreprocessed = true;
+                pendingImagePreprocessed = true;
                 showCameraPhotoReview();
+                setScannerStatus('Automatic scan complete. Review the corrected page; this exact image will be graded.', true);
 
             } catch (error) {
-                console.error('Camera capture error:', error);
-                alert(error.message || 'Camera capture failed.');
+                console.error('Camera capture/scanning error:', error);
+                pendingCameraFile = null;
+                pendingImagePreprocessed = false;
+                switchView('camera-review');
+                setScannerStatus(error.message || 'Scanning failed. Please retake the photograph.', false);
+                alert(error.message || 'Camera capture and scanning failed. Please retake the photograph.');
             } finally {
                 snapButton.disabled = false;
             }
         }
 
 
-        /* Show the captured photograph before it enters the grading queue. */
+        /* ========================================================
+         * IN-BROWSER DOCUMENT SCANNER (OpenCV.js)
+         * The browser creates the canonical 1240 x 1754 page image.
+         * ======================================================== */
+
+        function setScannerStatus(message, success) {
+            const el = document.getElementById('scannerStatus');
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'text-[11px] text-center leading-relaxed ' +
+                (success ? 'text-emerald-200' : 'text-amber-200');
+        }
+
+        async function waitForOpenCV(timeoutMs = 25000) {
+            if (window.cv && cv.Mat) return;
+            if (!openCvReadyPromise) {
+                openCvReadyPromise = new Promise((resolve, reject) => {
+                    const started = Date.now();
+                    const timer = setInterval(() => {
+                        if (window.cv && cv.Mat && cv.getBuildInformation) {
+                            clearInterval(timer);
+                            resolve();
+                        } else if (Date.now() - started > timeoutMs) {
+                            clearInterval(timer);
+                            reject(new Error('The browser scanning engine could not load. Check your internet connection and try again.'));
+                        }
+                    }, 100);
+                });
+            }
+            return openCvReadyPromise;
+        }
+
+        function loadImageElement(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const image = new Image();
+                image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+                image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('The captured photograph could not be opened.')); };
+                image.src = url;
+            });
+        }
+
+        function orderScannerCorners(points) {
+            const sums = points.map(p => p.x + p.y);
+            const diffs = points.map(p => p.y - p.x);
+            return [
+                points[sums.indexOf(Math.min(...sums))],
+                points[diffs.indexOf(Math.min(...diffs))],
+                points[sums.indexOf(Math.max(...sums))],
+                points[diffs.indexOf(Math.max(...diffs))]
+            ]; // top-left, top-right, bottom-right, bottom-left
+        }
+
+        function findPageQuadrilateral(src) {
+            const gray = new cv.Mat();
+            const blurred = new cv.Mat();
+            const edges = new cv.Mat();
+            const contours = new cv.MatVector();
+            const hierarchy = new cv.Mat();
+            let best = null;
+            let bestScore = 0;
+            try {
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+                cv.Canny(blurred, edges, 45, 140);
+                const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+                cv.dilate(edges, edges, kernel);
+                cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+                kernel.delete();
+                const imageArea = src.cols * src.rows;
+                for (let i = 0; i < contours.size(); i++) {
+                    const contour = contours.get(i);
+                    const perimeter = cv.arcLength(contour, true);
+                    const approx = new cv.Mat();
+                    cv.approxPolyDP(contour, approx, 0.02 * perimeter, true);
+                    const area = Math.abs(cv.contourArea(contour));
+                    if (approx.rows === 4 && area > imageArea * 0.12 && cv.isContourConvex(approx)) {
+                        const pts = [];
+                        for (let j = 0; j < 4; j++) pts.push({ x: approx.intAt(j, 0), y: approx.intAt(j, 1) });
+                        const ordered = orderScannerCorners(pts);
+                        const width = (Math.hypot(ordered[1].x-ordered[0].x, ordered[1].y-ordered[0].y) + Math.hypot(ordered[2].x-ordered[3].x, ordered[2].y-ordered[3].y)) / 2;
+                        const height = (Math.hypot(ordered[3].x-ordered[0].x, ordered[3].y-ordered[0].y) + Math.hypot(ordered[2].x-ordered[1].x, ordered[2].y-ordered[1].y)) / 2;
+                        const ratio = height / Math.max(width, 1);
+                        // MathsPal sheets are portrait. Keep a broad tolerance for camera angle.
+                        const ratioScore = Math.max(0, 1 - Math.abs(ratio - (1754/1240)) / 1.0);
+                        const score = area * (0.65 + 0.35 * ratioScore);
+                        if (score > bestScore) { bestScore = score; best = ordered; }
+                    }
+                    approx.delete();
+                    contour.delete();
+                }
+            } finally {
+                gray.delete(); blurred.delete(); edges.delete(); contours.delete(); hierarchy.delete();
+            }
+            return best;
+        }
+
+        async function scanMathsPalPage(file) {
+            await waitForOpenCV();
+            const image = await loadImageElement(file);
+            const maxSide = 1800;
+            const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+            const width = Math.max(1, Math.round(image.naturalWidth * scale));
+            const height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const inputCanvas = document.createElement('canvas');
+            inputCanvas.width = width; inputCanvas.height = height;
+            const inputCtx = inputCanvas.getContext('2d', { willReadFrequently: true });
+            inputCtx.drawImage(image, 0, 0, width, height);
+            const src = cv.imread(inputCanvas);
+            let warped = null;
+            try {
+                const corners = findPageQuadrilateral(src);
+                if (!corners) {
+                    throw new Error('MathsPal could not confidently detect all four page edges. Retake the photo with the entire sheet visible, good lighting and a contrasting background.');
+                }
+                const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, corners.flatMap(p => [p.x, p.y]));
+                const dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [0,0,1239,0,1239,1753,0,1753]);
+                const transform = cv.getPerspectiveTransform(srcPoints, dstPoints);
+                warped = new cv.Mat();
+                cv.warpPerspective(src, warped, transform, new cv.Size(1240, 1754), cv.INTER_CUBIC, cv.BORDER_CONSTANT, new cv.Scalar(255,255,255,255));
+                const outputCanvas = document.createElement('canvas');
+                outputCanvas.width = 1240; outputCanvas.height = 1754;
+                cv.imshow(outputCanvas, warped);
+                srcPoints.delete(); dstPoints.delete(); transform.delete();
+                const blob = await new Promise((resolve, reject) => outputCanvas.toBlob(b => b ? resolve(b) : reject(new Error('Could not create the corrected scan.')), 'image/jpeg', 0.94));
+                return blob;
+            } finally {
+                src.delete();
+                if (warped) warped.delete();
+            }
+        }
+
+        /* Show the processed scan, not the raw camera capture. */
         function showCameraPhotoReview() {
             if (!pendingCameraFile) return;
 
@@ -927,9 +1073,11 @@
 
                 pendingCameraFile = new File(
                     [rotatedBlob],
-                    'MathsPal-Camera-Page-Rotated.jpg',
+                    'MathsPal-Scanned-Page-Rotated.jpg',
                     { type: 'image/jpeg', lastModified: Date.now() }
                 );
+                pendingCameraFile.mathsPalPreprocessed = true;
+                pendingImagePreprocessed = true;
 
                 showCameraPhotoReview();
 
@@ -950,6 +1098,8 @@
             }
 
             batch = [pendingCameraFile];
+            // Mark the exact browser-corrected image for backend bypass of a second warp.
+            batch[0].mathsPalPreprocessed = pendingCameraFile.mathsPalPreprocessed === true;
             clearCameraReview();
             stopCameraStream();
             updateUI();
@@ -966,6 +1116,7 @@
 
         function clearCameraReview() {
             pendingCameraFile = null;
+            pendingImagePreprocessed = false;
             if (cameraPreviewUrl) {
                 URL.revokeObjectURL(cameraPreviewUrl);
                 cameraPreviewUrl = null;
@@ -1332,6 +1483,13 @@
                 'file',
                 file,
                 file.name
+            );
+
+            // Only camera images processed by the browser scanner carry this flag.
+            // PDFs and ordinary gallery images retain the existing backend path.
+            formData.append(
+                'image_preprocessed',
+                file.mathsPalPreprocessed === true ? 'true' : 'false'
             );
 
 
