@@ -1008,9 +1008,22 @@
                 const transform = cv.getPerspectiveTransform(srcPoints, dstPoints);
                 warped = new cv.Mat();
                 cv.warpPerspective(src, warped, transform, new cv.Size(1240, 1754), cv.INTER_CUBIC, cv.BORDER_CONSTANT, new cv.Scalar(255,255,255,255));
+
+                // Enhance faint pencil/pen strokes while retaining thin maths symbols.
+                // CLAHE works locally, so it also helps with uneven lighting and shadows.
+                const grayPage = new cv.Mat();
+                const enhancedGray = new cv.Mat();
+                const enhancedRgba = new cv.Mat();
+                const clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+                cv.cvtColor(warped, grayPage, cv.COLOR_RGBA2GRAY);
+                clahe.apply(grayPage, enhancedGray);
+                cv.cvtColor(enhancedGray, enhancedRgba, cv.COLOR_GRAY2RGBA);
+
                 const outputCanvas = document.createElement('canvas');
                 outputCanvas.width = 1240; outputCanvas.height = 1754;
-                cv.imshow(outputCanvas, warped);
+                cv.imshow(outputCanvas, enhancedRgba);
+                grayPage.delete(); enhancedGray.delete(); enhancedRgba.delete();
+                clahe.delete();
                 srcPoints.delete(); dstPoints.delete(); transform.delete();
                 const blob = await new Promise((resolve, reject) => outputCanvas.toBlob(b => b ? resolve(b) : reject(new Error('Could not create the corrected scan.')), 'image/jpeg', 0.94));
                 return blob;
