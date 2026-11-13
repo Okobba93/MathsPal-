@@ -1877,18 +1877,28 @@
                     response
                 );
 
+            // Some older backend responses returned HTTP 200 even when
+            // the operation failed. Check the JSON status as well.
+            if (result?.status === 'error') {
+                throw new Error(
+                    result.error ||
+                    result.detail ||
+                    "Assignment creation failed on the server."
+                );
+            }
 
             const code =
                 result?.short_code ||
                 result?.code;
 
-
             if (!code) {
-
-                throw new Error(
-                    "The assignment was created but no Class Code was returned."
+                console.error(
+                    "Unexpected create-assignment response:",
+                    result
                 );
-
+                throw new Error(
+                    "The server did not return a Class Code. Check the Render logs for [CREATE_ASSIGNMENT]."
+                );
             }
 
 
