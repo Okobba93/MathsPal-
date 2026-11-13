@@ -317,7 +317,7 @@
        CONFIGURATION
     ========================================================== */
 
-    const API_URL = 'https://mathspal-backend.onrender.com';
+    const API_URL = 'https://mathspal-backend-test.onrender.com';
 
     const S_URL = 'https://ykdehazdwinllvjsmrd.supabase.co';
 
@@ -485,7 +485,9 @@
                         q: q,
                         status: item.status ?? item.result ?? "",
                         expected: item.expected ?? "",
-                        detected: item.detected ?? ""
+                        detected: item.detected ?? "",
+                        llm7_diagnostic: item.llm7_diagnostic ?? null,
+                        final_candidates: item.final_candidates ?? []
                     };
 
                 })
@@ -536,7 +538,9 @@
                         q: q,
                         status: item.status ?? "",
                         expected: item.expected ?? "",
-                        detected: item.detected ?? ""
+                        detected: item.detected ?? "",
+                        llm7_diagnostic: item.llm7_diagnostic ?? null,
+                        final_candidates: item.final_candidates ?? []
                     };
 
                 })
@@ -583,7 +587,9 @@
                             q: q,
                             status: value.status ?? "",
                             expected: value.expected ?? "",
-                            detected: value.detected ?? ""
+                            detected: value.detected ?? "",
+                            llm7_diagnostic: value.llm7_diagnostic ?? null,
+                            final_candidates: value.final_candidates ?? []
                         };
 
                     }
@@ -602,6 +608,72 @@
 
 
         return [];
+    }
+
+
+    /* =========================================================
+       MATHEMATICAL RECOGNITION DIAGNOSTICS
+    ========================================================== */
+
+    function renderRecognitionDiagnostics(submission) {
+        const results = getSubmissionResults(submission);
+        const rows = results.map(result => {
+            const diagnostic = result.llm7_diagnostic || {};
+            const attempted = diagnostic.attempted === true;
+            const original = diagnostic.original_ocr ?? result.detected ?? "";
+            const reconstructed = diagnostic.reconstructed_expression ?? "";
+            const confidence = Number(diagnostic.confidence);
+            const confidenceText = Number.isFinite(confidence)
+                ? `${Math.round(confidence * 100)}%`
+                : "Not available";
+            const status = diagnostic.status || (attempted ? "unknown" : "not run");
+            const review = diagnostic.needs_review === true;
+            const badgeClass = review
+                ? "bg-amber-100 text-amber-800"
+                : status === "completed"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-slate-100 text-slate-500";
+            const candidates = Array.isArray(result.final_candidates)
+                ? result.final_candidates.join(" · ")
+                : "";
+
+            return `
+                <div class="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                    <div class="flex justify-between items-center gap-2">
+                        <span class="font-black text-slate-700">Question ${safeText(result.q)}</span>
+                        <span class="rounded-full px-2 py-1 text-[9px] font-black uppercase ${badgeClass}">
+                            ${safeText(status.replace(/_/g, " "))}
+                        </span>
+                    </div>
+                    <div>
+                        <div class="text-[9px] uppercase font-black tracking-wider text-slate-400">Original OCR</div>
+                        <div class="text-xs text-slate-700 break-words">${safeText(original || "No OCR text captured")}</div>
+                    </div>
+                    <div>
+                        <div class="text-[9px] uppercase font-black tracking-wider text-slate-400">LLM7 reconstruction</div>
+                        <div class="text-sm font-bold text-indigo-700 break-words">${safeText(reconstructed || "No reconstruction returned")}</div>
+                    </div>
+                    <div class="flex flex-wrap gap-3 text-[10px]">
+                        <span><b>Confidence:</b> ${safeText(confidenceText)}</span>
+                        <span><b>Type:</b> ${safeText(diagnostic.expression_type || "Unknown")}</span>
+                        <span><b>Review:</b> ${review ? "Required" : "No"}</span>
+                    </div>
+                    ${candidates ? `<div class="text-[10px] text-slate-500 break-words"><b>Grading candidates:</b> ${safeText(candidates)}</div>` : ""}
+                    ${diagnostic.error ? `<div class="text-[10px] text-red-600 break-words"><b>API issue:</b> ${safeText(diagnostic.error)}</div>` : ""}
+                </div>
+            `;
+        }).join("");
+
+        if (!results.length) {
+            return `<p class="text-xs text-slate-400">No question-level diagnostic data was saved for this submission.</p>`;
+        }
+
+        return `
+            <div class="space-y-3">
+                <div class="text-[9px] font-black uppercase tracking-widest text-indigo-600">Mathematical Recognition Diagnostics</div>
+                ${rows}
+            </div>
+        `;
     }
 
 
@@ -1230,21 +1302,15 @@
 
 
                                         return `
-                                            <div
-                                                class="flex justify-between items-center p-3 bg-white rounded-xl text-[10px] shadow-sm border font-black uppercase text-left"
-                                            >
-
-                                                <span class="truncate pr-3">
-                                                    ${studentName}
-                                                </span>
-
-                                                <span
-                                                    class="text-slate-400 font-mono text-right whitespace-nowrap"
-                                                >
-                                                    ${scoreDisplay}
-                                                </span>
-
-                                            </div>
+                                            <details class="bg-white rounded-xl border shadow-sm text-left">
+                                                <summary class="flex justify-between items-center p-3 cursor-pointer text-[10px] font-black uppercase">
+                                                    <span class="truncate pr-3">${studentName}</span>
+                                                    <span class="text-slate-400 font-mono whitespace-nowrap">${scoreDisplay}</span>
+                                                </summary>
+                                                <div class="p-3 pt-0 space-y-3">
+                                                    ${renderRecognitionDiagnostics(submission)}
+                                                </div>
+                                            </details>
                                         `;
 
                                     })
