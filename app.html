@@ -175,6 +175,16 @@
                     onchange="addGalleryFile(this.files)"
                 />
 
+                <!-- Native camera fallback for browsers where getUserMedia fails. -->
+                <input
+                    type="file"
+                    id="nativeCameraIn"
+                    class="hidden"
+                    accept="image/*"
+                    capture="environment"
+                    onchange="addGalleryFile(this.files)"
+                />
+
             </div>
 
             <!-- GRADE -->
@@ -757,53 +767,97 @@
          */
 
         async function openCamera() {
+            const video = document.getElementById('video');
+
+            // Release any previous camera session before requesting another one.
+            stopCameraStream();
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const useNative = confirm(
+                    'This browser does not support the in-app camera. Would you like to use your phone camera instead?'
+                );
+                if (useNative) openNativeCamera();
+                return;
+            }
 
             try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                });
 
-                if (
-                    !navigator.mediaDevices ||
-                    !navigator.mediaDevices.getUserMedia
-                ) {
+                if (!video) throw new Error('The camera preview element was not found.');
 
-                    alert(
-                        'Camera access is not supported by this browser.'
-                    );
-
-                    return;
-                }
-
-
-                stream =
-                    await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: {
-                                ideal: 'environment'
-                            }
-                        },
-                        audio: false
-                    });
-
-
-                const video =
-                    document.getElementById('video');
-
-
-                video.srcObject =
-                    stream;
-
-
+                video.srcObject = stream;
                 switchView('camera');
 
+                // Wait for the browser to attach and start the live video before
+                // enabling the capture screen.
+                await new Promise((resolve, reject) => {
+                    if (video.readyState >= 2 && video.videoWidth > 0) {
+                        resolve();
+                        return;
+                    }
+                    const timer = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('The camera opened but did not provide a video preview in time.'));
+                    }, 10000);
+                    const onReady = () => {
+                        if (video.videoWidth > 0) {
+                            cleanup();
+                            resolve();
+                        }
+                    };
+                    const cleanup = () => {
+                        clearTimeout(timer);
+                        video.removeEventListener('loadedmetadata', onReady);
+                        video.removeEventListener('canplay', onReady);
+                    };
+                    video.addEventListener('loadedmetadata', onReady);
+                    video.addEventListener('canplay', onReady);
+                });
+
+                await video.play();
             } catch (error) {
+                console.error('MathsPal camera error:', error);
+                stopCameraStream();
+                switchView('landing');
 
-                console.error(
-                    'Camera error:',
-                    error
-                );
+                let reason = 'The camera could not be started.';
+                if (error && error.name === 'NotAllowedError') {
+                    reason = 'Camera permission was denied. Allow camera access for this site in your browser settings.';
+                } else if (error && error.name === 'NotFoundError') {
+                    reason = 'No compatible camera was found on this device.';
+                } else if (error && error.name === 'NotReadableError') {
+                    reason = 'The camera may be busy in another app. Close other camera apps and try again.';
+                } else if (error && error.name === 'OverconstrainedError') {
+                    reason = 'The requested camera settings are not supported by this device.';
+                } else if (error && error.name === 'SecurityError') {
+                    reason = 'The browser blocked camera access. Open MathsPal using its HTTPS link.';
+                } else if (error && error.message) {
+                    reason = error.message;
+                }
 
-                alert(
-                    'Camera could not be opened. Please allow camera permission or use the gallery button.'
+                const useNative = confirm(
+                    reason + '\n\nWould you like to take the photo using your phone camera instead?'
                 );
+                if (useNative) openNativeCamera();
+            }
+        }
+
+        function openNativeCamera() {
+            // This uses the phone's native camera app and sends its photo through
+            // the same existing addGalleryFile -> image processing workflow.
+            const input = document.getElementById('nativeCameraIn');
+            if (input) {
+                input.value = '';
+                input.click();
+            } else {
+                alert('The phone-camera fallback is unavailable. Please use the gallery button.');
             }
         }
 
