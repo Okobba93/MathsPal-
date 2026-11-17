@@ -58,6 +58,22 @@
             background: black;
         }
 
+        /* Keep the live preview inside the available screen height so the
+           capture controls cannot be pushed below the bottom of the phone. */
+        #view-camera video {
+            flex: 1 1 0%;
+            min-height: 0;
+            height: 0;
+            width: 100%;
+            object-fit: contain;
+        }
+
+        #view-camera .camera-controls {
+            flex: 0 0 auto;
+            width: 100%;
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+        }
+
         .pop-in {
             animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
         }
@@ -211,21 +227,23 @@
 
     <div
         id="view-camera"
-        class="hidden fixed inset-0 bg-black z-50 flex flex-col p-6 space-y-6"
+        class="hidden fixed inset-0 bg-black z-50 flex flex-col p-3 gap-3 overflow-hidden"
     >
 
         <video
             id="video"
+            class="flex-1 min-h-0 w-full object-contain"
             autoplay
+            muted
             playsinline
         ></video>
 
-        <div class="flex justify-center gap-6">
+        <div class="camera-controls flex items-center justify-between gap-4">
 
             <button
                 onclick="closeCamera()"
                 type="button"
-                class="px-6 py-3 bg-slate-700 text-white rounded-xl font-black uppercase text-xs"
+                class="min-w-[88px] px-5 py-3 bg-slate-700 text-white rounded-xl font-black uppercase text-xs"
             >
                 Cancel
             </button>
@@ -234,8 +252,13 @@
                 id="snapBtn"
                 onclick="snap()"
                 type="button"
-                class="w-20 h-20 bg-white rounded-full border-8 border-slate-800 shadow-2xl active:scale-90 transition"
-            ></button>
+                aria-label="Capture photograph"
+                class="shrink-0 w-[76px] h-[76px] rounded-full bg-white border-[6px] border-slate-400 shadow-2xl flex items-center justify-center active:scale-90 transition disabled:opacity-50"
+            >
+                <span class="block w-[54px] h-[54px] rounded-full bg-red-600 border-4 border-white"></span>
+            </button>
+
+            <span class="min-w-[88px] text-right text-white text-xs font-black uppercase tracking-wider">Capture</span>
 
         </div>
 
