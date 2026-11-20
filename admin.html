@@ -184,6 +184,13 @@
                 >
 
 
+                <!-- Optional teacher answer PDF (appended after the student's marked work) -->
+                <div class="text-left space-y-2">
+                    <label for="answerPdf" class="block text-xs font-black uppercase tracking-wide text-slate-600">Optional answer PDF</label>
+                    <input id="answerPdf" type="file" accept="application/pdf,.pdf" class="w-full p-3 border-2 border-slate-100 rounded-xl bg-slate-50 text-sm">
+                    <p class="text-xs text-slate-500">PDF only · maximum 10 MB. It will be appended to every learner's marked PDF for this assignment.</p>
+                </div>
+
                 <!-- Questions -->
                 <div
                     id="q-list"
@@ -1856,6 +1863,20 @@
                     answers
                 )
             );
+
+            const answerPdfInput = document.getElementById('answerPdf');
+            const answerPdfFile = answerPdfInput?.files?.[0];
+            if (answerPdfFile) {
+                const answerPdfNameIsPdf = answerPdfFile.name.toLowerCase().endsWith('.pdf');
+                const answerPdfMimeIsAllowed = !answerPdfFile.type || answerPdfFile.type === 'application/pdf';
+                if (!answerPdfNameIsPdf || !answerPdfMimeIsAllowed) {
+                    throw new Error('Please select a valid PDF file for the answer pack.');
+                }
+                if (answerPdfFile.size > 10 * 1024 * 1024) {
+                    throw new Error('Answer PDF must be 10 MB or smaller.');
+                }
+                fd.append('answer_pdf', answerPdfFile);
+            }
 
 
             const response =
